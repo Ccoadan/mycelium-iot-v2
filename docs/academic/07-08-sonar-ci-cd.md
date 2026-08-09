@@ -4,17 +4,17 @@
 
 `sonar-project.properties` define `src` y `public` como fuentes, `tests` como pruebas y consume `coverage/lcov.info`. El código del navegador y los comandos CLI se analizan, aunque se excluyen del cálculo unitario de cobertura porque se verifican mediante Selenium o procedimientos operativos.
 
-Al crear el proyecto en SonarQube Cloud se configurarán:
+El proyecto de SonarQube Cloud utiliza:
 
 - secreto `SONAR_TOKEN`;
 - variable `SONAR_PROJECT_KEY`;
 - variable `SONAR_ORGANIZATION`.
 
-El reporte final registrará bugs, vulnerabilidades, smells, cobertura, complejidad, duplicación y deuda técnica. Hasta ejecutar el análisis remoto, esos valores se mantienen como pendientes y no como ceros.
+El análisis posterior a la remediación obtuvo Quality Gate aprobado, 0 bugs, 0 vulnerabilidades, 0 hotspots, 29 code smells, 82.8 % de cobertura general y 0.5 % de duplicación. La deuda técnica calculada fue de 150 minutos; confiabilidad, seguridad y mantenibilidad obtuvieron calificación A.
 
 ## Pipeline GitHub Actions
 
-La primera ejecución remota del pipeline finalizó correctamente: <https://github.com/Ccoadan/mycelium-iot-v2/actions/runs/31330748354>.
+La primera ejecución remota del pipeline finalizó correctamente: <https://github.com/Ccoadan/mycelium-iot-v2/actions/runs/31330748354>. La ejecución con SonarQube y las correcciones prioritarias también fue aprobada: <https://github.com/Ccoadan/mycelium-iot-v2/actions/runs/31331977476>.
 
 `.github/workflows/ci-cd.yml` se activa en cada `push` y `pull_request` hacia `main`, además de permitir ejecución manual.
 

@@ -6,18 +6,39 @@
 |---|---:|---|
 | Suites aprobadas | 16/16 | Vitest 3.2.6 |
 | Pruebas aprobadas | 35/35 | Vitest 3.2.6 |
-| Sentencias cubiertas | 83.44 % | Cobertura V8 |
-| Ramas cubiertas | 78.64 % | Cobertura V8 |
-| Funciones cubiertas | 92.30 % | Cobertura V8 |
-| Líneas cubiertas | 83.44 % | Cobertura V8 |
+| Sentencias cubiertas | 83.51 % | Cobertura V8 |
+| Ramas cubiertas | 78.81 % | Cobertura V8 |
+| Funciones cubiertas | 92.45 % | Cobertura V8 |
+| Líneas cubiertas | 83.51 % | Cobertura V8 |
 | Vulnerabilidades de dependencias | 0 | `npm audit` |
 | Vulnerabilidades de producción | 0 | `npm audit --omit=dev` |
 
 La compuerta automatizada exige 80 % de sentencias y líneas, 75 % de ramas y 85 % de funciones. El reporte HTML se genera en `coverage/` y el JUnit XML en `reports/junit.xml`.
 
-## Métricas pendientes de SonarQube
+## Línea base SonarQube Cloud
 
-Complejidad ciclomática, duplicación, Maintainability Index equivalente, bugs, vulnerabilidades, smells y deuda técnica se incorporarán después de la primera ejecución con SonarQube Cloud. No se consignarán valores estimados como si fueran mediciones.
+Análisis validado mediante GitHub Actions el 9 de agosto de 2026.
+
+| Métrica | Resultado |
+|---|---:|
+| Quality Gate | Aprobado |
+| Líneas de código | 5,910 |
+| Cobertura general | 82.8 % |
+| Cobertura de líneas | 83.5 % |
+| Cobertura de ramas | 78.8 % |
+| Duplicación | 0.5 % |
+| Bugs | 0 |
+| Vulnerabilidades | 0 |
+| Hotspots de seguridad | 0 |
+| Code smells | 29 |
+| Complejidad ciclomática | 786 |
+| Complejidad cognitiva | 477 |
+| Deuda técnica | 150 minutos |
+| Confiabilidad | A |
+| Seguridad | A |
+| Mantenibilidad | A |
+
+Las 29 incidencias restantes son mantenibilidad no bloqueante: 21 mayores y 8 menores. Se incorporan al plan de mejora y no representan bugs ni vulnerabilidades abiertas.
 
 ## Registro inicial de defectos de calidad
 
@@ -26,10 +47,10 @@ Complejidad ciclomática, duplicación, Maintainability Index equivalente, bugs,
 | CAL-001 | No existía medición ni umbral de cobertura. | Media | Corregido |
 | CAL-002 | Vitest 2.1.9 tenía vulnerabilidades conocidas en herramientas de desarrollo. | Alta | Corregido con Vitest 3.2.6 |
 | CAL-003 | Solo MongoDB estaba definido en Docker; la aplicación no era desplegable como unidad. | Alta | Corregido y validado localmente; pendiente VPS |
-| CAL-004 | No existía pipeline CI/CD ni configuración SonarQube. | Alta | CI validado en GitHub; pendiente análisis SonarQube Cloud |
+| CAL-004 | No existía pipeline CI/CD ni configuración SonarQube. | Alta | Corregido y validado en GitHub y SonarQube Cloud |
 | CAL-005 | El proyecto todavía no tenía repositorio Git. | Alta | Corregido; publicado en GitHub |
 
-En esta línea base existen 5 hallazgos: 3 cerrados y 2 con corrección implementada pendiente de validación externa. No se detectó un defecto crítico de producción.
+En esta línea base existen 5 hallazgos: 4 cerrados y 1 con corrección implementada pendiente de despliegue en la VPS. No se detectó un defecto crítico de producción.
 
 ## Productividad
 
