@@ -1020,7 +1020,7 @@ function bindEvents() {
   });
   elements['photo-dialog-close'].addEventListener('click', closePhotoDialog);
   elements['photo-dialog'].addEventListener('click', (event) => {
-    if (event.target === elements['photo-dialog']) closePhotoDialog();
+    if (event.target instanceof Element && event.target.id === 'photo-dialog') closePhotoDialog();
   });
   elements['history-type'].addEventListener('change', () => synchronizeHistoryFilters('type'));
   elements['history-sensor'].addEventListener('change', () => synchronizeHistoryFilters('sensor'));

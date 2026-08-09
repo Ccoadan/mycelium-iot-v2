@@ -10,7 +10,7 @@ export function readJpegDimensions(bytes: Uint8Array): ImageDimensions | null {
   let offset = 2;
 
   while (offset + 8 < bytes.length) {
-    while (bytes[offset] === 0xff) offset += 1;
+    offset = skipMarkerPrefix(bytes, offset);
     const marker = bytes[offset];
     offset += 1;
     if (marker === undefined || marker === 0xd9 || marker === 0xda) break;
@@ -27,6 +27,11 @@ export function readJpegDimensions(bytes: Uint8Array): ImageDimensions | null {
   }
 
   return null;
+}
+
+function skipMarkerPrefix(bytes: Uint8Array, offset: number): number {
+  while (bytes[offset] === 0xff) offset += 1;
+  return offset;
 }
 
 function readUint16(bytes: Uint8Array, offset: number): number | null {

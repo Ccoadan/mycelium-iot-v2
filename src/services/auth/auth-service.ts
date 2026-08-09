@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs';
+import { randomUUID } from 'node:crypto';
 import { ObjectId } from 'mongodb';
 import { sign, verify } from 'hono/jwt';
 import { z } from 'zod';
@@ -10,8 +11,6 @@ import { AuthenticationRequiredError, InvalidCredentialsError } from './auth-err
 
 const TOKEN_ISSUER = 'mycelium-iot-v2';
 const TOKEN_AUDIENCE = 'mycelium-dashboard';
-const DUMMY_PASSWORD_HASH = '$2a$12$kMOi4cUcrqqFs02dmrM1P.2zJJ8B1lHTi92h9DTQ3gwr/uC3RVYPW';
-
 const tokenPayloadSchema = z.object({
   sub: z.string().regex(/^[a-f\d]{24}$/i),
   username: z.string().min(1),
@@ -37,6 +36,8 @@ export interface AuthSession {
 }
 
 export class AuthService {
+  private dummyPasswordHash?: Promise<string>;
+
   public constructor(
     private readonly users: UserRepository,
     private readonly audit: AuditService,
@@ -48,7 +49,8 @@ export class AuthService {
   public async login(username: string, password: string): Promise<AuthSession> {
     const normalizedUsername = username.trim().toLowerCase();
     const user = await this.users.findByUsername(normalizedUsername);
-    const passwordMatches = await bcrypt.compare(password, user?.passwordHash ?? DUMMY_PASSWORD_HASH);
+    const passwordHash = user?.passwordHash ?? await this.getDummyPasswordHash();
+    const passwordMatches = await bcrypt.compare(password, passwordHash);
 
     if (!user || !user.active || !user._id || !passwordMatches) {
       await this.audit.register({
@@ -132,6 +134,11 @@ export class AuthService {
       details: { sessionsInvalidated: true },
       timestamp,
     });
+  }
+
+  private getDummyPasswordHash(): Promise<string> {
+    this.dummyPasswordHash ??= bcrypt.hash(randomUUID(), 12);
+    return this.dummyPasswordHash;
   }
 }
 

@@ -65,7 +65,7 @@ async function main(): Promise<void> {
   try {
     const database = await connection.getDatabase();
     await ensureDatabaseSchema(database);
-    const files = (await collectJpegs(root)).sort();
+    const files = (await collectJpegs(root)).sort((left, right) => left.localeCompare(right, 'es'));
     if (files.length > MAX_SAMPLE_PHOTOS) {
       throw new Error(`La carpeta contiene ${files.length} imágenes; el importador admite hasta ${MAX_SAMPLE_PHOTOS}`);
     }
