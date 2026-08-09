@@ -1,0 +1,114 @@
+name: Calidad y despliegue
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-cd-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Build, pruebas, cobertura y SonarQube
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
+      SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION }}
+
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20.19.0
+          cache: npm
+
+      - name: Instalar dependencias bloqueadas
+        run: npm ci
+
+      - name: Auditar dependencias de producción
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Compilar y ejecutar pruebas con cobertura
+        run: npm run verify:ci
+
+      - name: Analizar con SonarQube Cloud
+        if: ${{ env.SONAR_TOKEN != '' && env.SONAR_PROJECT_KEY != '' && env.SONAR_ORGANIZATION != '' }}
+        uses: SonarSource/sonarqube-scan-action@v8.2.1
+        with:
+          args: >-
+            -Dsonar.projectKey=${{ env.SONAR_PROJECT_KEY }}
+            -Dsonar.organization=${{ env.SONAR_ORGANIZATION }}
+
+      - name: Informar configuración pendiente de SonarQube
+        if: ${{ env.SONAR_TOKEN == '' || env.SONAR_PROJECT_KEY == '' || env.SONAR_ORGANIZATION == '' }}
+        run: echo "SonarQube se activará al configurar SONAR_TOKEN, SONAR_PROJECT_KEY y SONAR_ORGANIZATION."
+
+      - name: Conservar reportes
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: reportes-calidad-${{ github.run_number }}
+          path: |
+            coverage/
+            reports/
+          if-no-files-found: warn
+          retention-days: 30
+
+  deploy:
+    name: Desplegar en VPS
+    needs: quality
+    if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    env:
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_USER: ${{ secrets.VPS_USER }}
+      VPS_SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+      VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+
+    steps:
+      - name: Comprobar configuración de despliegue
+        id: deployment
+        shell: bash
+        run: |
+          if [[ -n "$VPS_HOST" && -n "$VPS_USER" && -n "$VPS_SSH_PRIVATE_KEY" && -n "$VPS_KNOWN_HOSTS" ]]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "La VPS se desplegará cuando sus cuatro secretos estén configurados."
+          fi
+
+      - name: Actualizar contenedores en la VPS
+        if: ${{ steps.deployment.outputs.ready == 'true' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          key_path="$RUNNER_TEMP/vps_deploy_key"
+          trap 'rm -f "$key_path"' EXIT
+          install -m 700 -d "$HOME/.ssh"
+          printf '%s\n' "$VPS_SSH_PRIVATE_KEY" > "$key_path"
+          chmod 600 "$key_path"
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+          ssh -i "$key_path" -o IdentitiesOnly=yes "$VPS_USER@$VPS_HOST" '
+            set -eu
+            cd /opt/mycelium-iot-v2
+            git pull --ff-only origin main
+            docker compose --env-file deploy/.env.production -f deploy/compose.production.yaml up -d --build --remove-orphans
+            docker compose --env-file deploy/.env.production -f deploy/compose.production.yaml ps
+          '

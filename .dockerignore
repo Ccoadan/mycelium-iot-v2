@@ -1,0 +1,15 @@
+node_modules
+dist
+.env
+.env.*
+!.env.example
+!deploy/.env.production.example
+.git
+.gitignore
+coverage
+reports
+legacy
+public/photos/**
+!public/photos/sample/
+!public/photos/sample/*.jpg
+*.log

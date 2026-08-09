@@ -1,0 +1,151 @@
+name: mycelium-iot-production
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: "3"
+
+x-app-environment: &app-environment
+  APP_ENV: production
+  HOST: 0.0.0.0
+  PORT: 3000
+  MONGODB_URI: mongodb://${MONGO_APP_USERNAME}:${MONGO_APP_PASSWORD}@mongodb:27017/${MONGODB_DB_NAME}?authSource=${MONGODB_DB_NAME}
+  MONGODB_DB_NAME: ${MONGODB_DB_NAME}
+  MONGODB_SERVER_SELECTION_TIMEOUT_MS: ${MONGODB_SERVER_SELECTION_TIMEOUT_MS:-5000}
+  JWT_SECRET: ${JWT_SECRET}
+  AUTH_SESSION_TTL_SECONDS: ${AUTH_SESSION_TTL_SECONDS:-28800}
+  AUTH_COOKIE_NAME: ${AUTH_COOKIE_NAME:-mycelium_session}
+  AUTH_LOGIN_MAX_FAILURES: ${AUTH_LOGIN_MAX_FAILURES:-5}
+  AUTH_LOGIN_WINDOW_SECONDS: ${AUTH_LOGIN_WINDOW_SECONDS:-300}
+  AUTH_LOGIN_BLOCK_SECONDS: ${AUTH_LOGIN_BLOCK_SECONDS:-300}
+  PHOTO_STORAGE_LOCAL_ROOT: /app/public/photos
+  SIMULATION_INTERVAL_SECONDS: ${SIMULATION_INTERVAL_SECONDS:-10}
+  SIMULATION_AUTO_START: ${SIMULATION_AUTO_START:-true}
+  SIMULATION_API_CONTROL_ENABLED: ${SIMULATION_API_CONTROL_ENABLED:-true}
+
+services:
+  mongodb:
+    image: mongo:8.0
+    restart: unless-stopped
+    command: ["mongod", "--wiredTigerCacheSizeGB", "0.25"]
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGODB_DB_NAME}
+      MONGO_APP_USERNAME: ${MONGO_APP_USERNAME}
+      MONGO_APP_PASSWORD: ${MONGO_APP_PASSWORD}
+    volumes:
+      - mongodb_data:/data/db
+      - ./mongo/01-create-app-user.sh:/docker-entrypoint-initdb.d/01-create-app-user.sh:ro
+    networks:
+      - backend
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          mongosh --quiet --username "$${MONGO_INITDB_ROOT_USERNAME}"
+          --password "$${MONGO_INITDB_ROOT_PASSWORD}" --authenticationDatabase admin
+          --eval "quit(db.runCommand({ ping: 1 }).ok ? 0 : 2)"
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    mem_limit: 768m
+    logging: *default-logging
+
+  initialize:
+    image: mycelium-iot-v2:production
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    restart: "no"
+    environment:
+      <<: *app-environment
+      MONGODB_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/?authSource=admin
+      SEED_ADMIN_USERNAME: ${SEED_ADMIN_USERNAME}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD}
+      SEED_VIEWER_USERNAME: ${SEED_VIEWER_USERNAME}
+      SEED_VIEWER_PASSWORD: ${SEED_VIEWER_PASSWORD}
+      BCRYPT_ROUNDS: ${BCRYPT_ROUNDS:-12}
+    command:
+      - sh
+      - -c
+      - npm run seed:prod && npm run photos:import-samples:prod
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    volumes:
+      - photo_data:/app/public/photos
+    networks:
+      - backend
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    logging: *default-logging
+
+  app:
+    image: mycelium-iot-v2:production
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment: *app-environment
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      initialize:
+        condition: service_completed_successfully
+    volumes:
+      - photo_data:/app/public/photos:ro
+    networks:
+      - backend
+      - frontend
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 384m
+    logging: *default-logging
+
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS}
+    depends_on:
+      app:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - frontend
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 128m
+    logging: *default-logging
+
+volumes:
+  mongodb_data:
+  photo_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  backend:
+    internal: true
+  frontend:

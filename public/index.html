@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Dashboard local del sistema IoT de monitoreo de micelio" />
+    <meta name="theme-color" content="#f2f2f7" />
+    <title>Módulo Hongos · V2</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&amp;family=DM+Sans:wght@300;400;500;600&amp;family=Playfair+Display:ital,wght@0,500;1,400&amp;display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/css/base.css?v=8" />
+    <script src="/js/dashboard.js?v=8" type="module"></script>
+  </head>
+  <body>
+    <header class="header">
+      <a class="header-left" href="#main-content" aria-label="Ir al dashboard">
+        <span class="logo-mark" aria-hidden="true">🌿</span>
+        <span>
+          <strong class="site-title">Módulo Hongos</strong>
+          <span class="site-sub">Monitoreo de biomaterial de micelio · V2</span>
+        </span>
+      </a>
+      <div class="header-right">
+        <div class="pill-status is-loading" id="system-pill">
+          <span class="pill-dot"></span>
+          <span id="system-label">Conectando</span>
+        </div>
+        <div class="simulator-status" id="simulator-status">Simulador —</div>
+        <time class="header-clock" id="clock">--:--:--</time>
+        <button class="btn-header" id="simulation-toggle" type="button" disabled>Iniciar simulador</button>
+        <div class="auth-user" id="auth-user" hidden><span id="auth-username">—</span><small id="auth-role">—</small></div>
+        <button class="btn-header btn-auth" id="auth-toggle" type="button">Iniciar sesión</button>
+      </div>
+    </header>
+
+    <main class="page" id="main-content">
+      <section class="system-strip card" aria-label="Estado del sistema">
+        <div class="system-strip-copy">
+          <span class="section-kicker">ESTADO LOCAL</span>
+          <strong id="system-summary">Comprobando servicios</strong>
+          <span id="last-refresh">Esperando la primera lectura…</span>
+        </div>
+        <div class="service-pills">
+          <span class="service-pill" id="api-service"><i></i>API</span>
+          <span class="service-pill" id="mongodb-service"><i></i>MongoDB</span>
+          <span class="service-pill" id="simulator-service"><i></i>Simulador</span>
+        </div>
+      </section>
+
+      <section class="section-ambient" aria-labelledby="ambient-title">
+        <article class="card card-ambient-chart">
+          <div class="card-top">
+            <div>
+              <span class="section-kicker">MÓDULO</span>
+              <h1 class="card-title card-title-lg" id="ambient-title">Ambiente</h1>
+            </div>
+            <div class="seg-control" id="ambient-tabs" aria-label="Variable ambiental">
+              <button class="seg-btn active" type="button" data-type="temperature_environment">Temperatura</button>
+              <button class="seg-btn" type="button" data-type="humidity_environment">Humedad</button>
+              <button class="seg-btn" type="button" data-type="co2_environment">CO₂</button>
+            </div>
+          </div>
+          <div class="chart-area">
+            <svg class="line-chart" id="ambient-chart" viewBox="0 0 800 240" role="img" aria-label="Historial ambiental"></svg>
+          </div>
+          <div class="chart-footer">
+            <span>Últimas 24 horas</span>
+            <span id="ambient-chart-meta">Sin datos</span>
+          </div>
+        </article>
+
+        <aside class="ambient-sidebar">
+          <article class="card card-co2">
+            <span class="co2-label">CO₂ ambiental</span>
+            <div class="co2-value"><strong id="co2-value">----</strong><span>ppm</span></div>
+            <div class="co2-gauge-wrap">
+              <div class="co2-gauge-track"><div class="co2-gauge-fill" id="co2-gauge"></div></div>
+              <div class="co2-gauge-labels"><span>0</span><span>1500</span><span>3000</span></div>
+            </div>
+            <div class="co2-badge" id="co2-badge">SIN DATOS</div>
+          </article>
+
+          <article class="card card-stats">
+            <h2 class="card-label">Datos actuales</h2>
+            <dl class="stats-list">
+              <div class="stat-row"><dt><span>🌡</span>Temperatura</dt><dd id="ambient-temperature">-- °C</dd></div>
+              <div class="stat-row"><dt><span>💧</span>Humedad</dt><dd id="ambient-humidity">-- %</dd></div>
+              <div class="stat-divider"></div>
+              <div class="stat-row"><dt><span>⏱</span>Última lectura</dt><dd id="latest-time">--:--</dd></div>
+              <div class="stat-row"><dt><span>📡</span>Reportando</dt><dd id="reporting-sensors">0 / 21</dd></div>
+              <div class="stat-row"><dt><span>🌡</span>Prom. bolsas</dt><dd id="average-temperature">-- °C</dd></div>
+              <div class="stat-row"><dt><span>💧</span>Prom. bolsas</dt><dd id="average-humidity">-- %</dd></div>
+            </dl>
+          </article>
+        </aside>
+      </section>
+
+      <section class="section-sensors" aria-labelledby="sensors-title">
+        <article class="card card-sensors">
+          <div class="card-top">
+            <div>
+              <span class="section-kicker">NUEVE BOLSAS</span>
+              <h2 class="card-title" id="sensors-title">Sensores de sustrato</h2>
+            </div>
+            <div class="seg-control" id="sensor-tabs" aria-label="Variable de las bolsas">
+              <button class="seg-btn active" type="button" data-type="temperature_bag">🌡 Temperatura</button>
+              <button class="seg-btn" type="button" data-type="humidity_bag">💧 Humedad</button>
+            </div>
+          </div>
+          <div class="sensors-grid" id="sensors-grid" aria-live="polite"></div>
+          <div class="sensor-legend"><span><i class="legend-status online"></i>Reciente</span><span><i class="legend-status stale"></i>Sin lectura reciente</span><span><i class="legend-status no-data"></i>Sin datos</span></div>
+        </article>
+      </section>
+
+      <section class="section-bag" aria-labelledby="bag-name">
+        <article class="card card-bag">
+          <div class="bag-header">
+            <div>
+              <span class="section-kicker">DETALLE</span>
+              <h2 class="card-title" id="bag-name">Bolsa 1</h2>
+              <p class="bag-species" id="bag-species"><em>Pleurotus ostreatus</em></p>
+            </div>
+            <label class="select-label">Bolsa
+              <select class="bag-select" id="bag-select">
+                <option value="1">Bolsa 1</option><option value="2">Bolsa 2</option><option value="3">Bolsa 3</option>
+                <option value="4">Bolsa 4</option><option value="5">Bolsa 5</option><option value="6">Bolsa 6</option>
+                <option value="7">Bolsa 7</option><option value="8">Bolsa 8</option><option value="9">Bolsa 9</option>
+              </select>
+            </label>
+          </div>
+          <div class="bag-image-wrap">
+            <div class="bag-image-bg" id="bag-image-bg"></div>
+            <img class="bag-image" id="bag-image" src="/images/bags/b1.png" alt="Ilustración de la Bolsa 1" />
+            <span class="bag-badge" id="bag-badge">Esterilizado</span>
+          </div>
+        </article>
+
+        <article class="card card-bag-chart">
+          <div class="card-top">
+            <div>
+              <span class="section-kicker">EVOLUCIÓN</span>
+              <h2 class="card-title">Temperatura y humedad · <span id="bag-chart-title">Bolsa 1</span></h2>
+            </div>
+            <div class="chart-legend-inline"><span><i style="--legend:#ef6c54"></i>Temperatura</span><span><i style="--legend:#4a90d9"></i>Humedad</span></div>
+          </div>
+          <div class="chart-area chart-area-bag">
+            <svg class="line-chart" id="bag-chart" viewBox="0 0 800 240" role="img" aria-label="Historial de la bolsa seleccionada"></svg>
+          </div>
+          <div class="bag-current-values">
+            <div><span>Temperatura actual</span><strong class="temperature-color" id="bag-temperature">-- °C</strong></div>
+            <div class="current-divider"></div>
+            <div><span>Humedad actual</span><strong class="humidity-color" id="bag-humidity">-- %</strong></div>
+          </div>
+        </article>
+      </section>
+
+      <section class="section-history" aria-labelledby="history-title">
+        <article class="card card-history">
+          <div class="card-top history-heading">
+            <div>
+              <span class="section-kicker">FASE 7 · CONSULTA Y DESCARGA</span>
+              <h2 class="card-title" id="history-title">Historial de mediciones</h2>
+            </div>
+            <span class="phase-chip is-admin">UTC · Lima</span>
+          </div>
+          <form class="history-filters" id="history-filters">
+            <label>Desde <input id="history-from" type="datetime-local" required /></label>
+            <label>Hasta <input id="history-to" type="datetime-local" required /></label>
+            <label>Variable
+              <select id="history-type">
+                <option value="">Todas</option>
+                <option value="temperature_environment">Temperatura ambiental</option>
+                <option value="humidity_environment">Humedad ambiental</option>
+                <option value="co2_environment">CO₂ ambiental</option>
+                <option value="temperature_bag">Temperatura de bolsa</option>
+                <option value="humidity_bag">Humedad de bolsa</option>
+              </select>
+            </label>
+            <label>Sensor
+              <select id="history-sensor">
+                <option value="">Todos</option><option value="0">Ambiente</option>
+                <option value="1">Bolsa 1</option><option value="2">Bolsa 2</option><option value="3">Bolsa 3</option>
+                <option value="4">Bolsa 4</option><option value="5">Bolsa 5</option><option value="6">Bolsa 6</option>
+                <option value="7">Bolsa 7</option><option value="8">Bolsa 8</option><option value="9">Bolsa 9</option>
+              </select>
+            </label>
+            <label>Bolsa
+              <select id="history-bag">
+                <option value="">Todas</option>
+                <option value="1">Bolsa 1</option><option value="2">Bolsa 2</option><option value="3">Bolsa 3</option>
+                <option value="4">Bolsa 4</option><option value="5">Bolsa 5</option><option value="6">Bolsa 6</option>
+                <option value="7">Bolsa 7</option><option value="8">Bolsa 8</option><option value="9">Bolsa 9</option>
+              </select>
+            </label>
+            <div class="history-actions">
+              <button class="history-button" id="history-apply" type="submit">Aplicar filtros</button>
+              <button class="history-button is-export" id="history-export" type="button">Descargar CSV</button>
+            </div>
+          </form>
+          <div class="history-summary">
+            <strong id="history-count">Esperando consulta</strong>
+            <span id="history-range">Fechas mostradas en America/Lima</span>
+          </div>
+          <div class="history-table-wrap">
+            <table class="history-table">
+              <thead><tr><th>Fecha · Lima</th><th>Sensor</th><th>Variable</th><th>Bolsa</th><th>Valor</th><th>Origen</th></tr></thead>
+              <tbody id="history-table-body"><tr><td colspan="6" class="history-empty">Inicia sesión para consultar el historial.</td></tr></tbody>
+            </table>
+          </div>
+          <div class="history-pagination">
+            <button id="history-prev" type="button" disabled>← Anterior</button>
+            <span id="history-page">Página —</span>
+            <button id="history-next" type="button" disabled>Siguiente →</button>
+          </div>
+        </article>
+      </section>
+
+      <section class="section-future" aria-label="Módulos siguientes">
+        <article class="card card-control-preview">
+          <div class="card-top">
+            <div><span class="section-kicker">SIMULACIÓN LOCAL</span><h2 class="card-title">Control</h2></div>
+            <span class="phase-chip" id="control-role-chip">Cargando</span>
+          </div>
+          <p class="phase-copy" id="control-context">Consultando el estado y los permisos del usuario local…</p>
+          <div class="control-list" id="control-list">
+            <div class="control-row" data-control-row="relay1">
+              <span><i>🌬</i><span><strong>Ventilador de entrada</strong><small data-control-status="relay1">Consultando…</small></span></span>
+              <label class="ios-toggle"><input type="checkbox" data-relay="relay1" aria-label="Ventilador de entrada" disabled /><i></i></label>
+            </div>
+            <div class="control-row" data-control-row="relay2">
+              <span><i>💨</i><span><strong>Ventilador de salida</strong><small data-control-status="relay2">Consultando…</small></span></span>
+              <label class="ios-toggle"><input type="checkbox" data-relay="relay2" aria-label="Ventilador de salida" disabled /><i></i></label>
+            </div>
+            <div class="control-row" data-control-row="relay3">
+              <span><i>💡</i><span><strong>Iluminación de cámara</strong><small data-control-status="relay3">Consultando…</small></span></span>
+              <label class="ios-toggle"><input type="checkbox" data-relay="relay3" aria-label="Iluminación de cámara" disabled /><i></i></label>
+            </div>
+            <div class="control-row" data-control-row="relay4">
+              <span><i>⚡</i><span><strong>Relé auxiliar 4</strong><small data-control-status="relay4">Consultando…</small></span></span>
+              <label class="ios-toggle"><input type="checkbox" data-relay="relay4" aria-label="Relé auxiliar 4" disabled /><i></i></label>
+            </div>
+          </div>
+          <div class="control-footer">
+            <span id="control-updated-at">Sin cambios registrados</span>
+            <span id="control-updated-by">MongoDB</span>
+          </div>
+        </article>
+
+        <article class="card card-camera-preview">
+          <div class="card-top">
+            <div><span class="section-kicker">SEGUIMIENTO VISUAL</span><h2 class="card-title">Última fotografía</h2></div>
+            <span class="phase-chip">Histórica</span>
+          </div>
+          <button class="latest-photo-button" id="latest-photo-open" type="button" disabled>
+            <img id="latest-photo-image" alt="" hidden />
+            <span class="camera-placeholder" id="latest-photo-empty"><span>📷</span><strong>Consultando cámara</strong><small>Esperando una fotografía publicada</small></span>
+          </button>
+          <div class="camera-meta">
+            <span><small>Captura · America/Lima</small><strong id="latest-photo-date">Sin fotografía</strong></span>
+            <span><small>Origen</small><strong id="latest-photo-source">—</strong></span>
+          </div>
+          <button class="camera-gallery-link" id="camera-gallery-link" type="button">Ver galería histórica ↓</button>
+        </article>
+      </section>
+
+      <section class="section-gallery" id="photo-gallery-section" aria-labelledby="gallery-title">
+        <article class="card card-gallery">
+          <div class="card-top gallery-heading">
+            <div>
+              <span class="section-kicker">FASE 8 · EVOLUCIÓN DEL MICELIO</span>
+              <h2 class="card-title" id="gallery-title">Galería histórica</h2>
+            </div>
+            <span class="phase-chip is-admin" id="gallery-count">Esperando consulta</span>
+          </div>
+          <p class="gallery-copy">Muestra real del experimento original. Las fechas se presentan en hora de Lima y los archivos se entregan únicamente a usuarios autenticados.</p>
+          <div class="photo-gallery" id="photo-gallery" aria-live="polite">
+            <div class="gallery-empty">Inicia sesión para consultar las fotografías.</div>
+          </div>
+          <div class="history-pagination gallery-pagination">
+            <button id="gallery-prev" type="button" disabled>← Anterior</button>
+            <span id="gallery-page">Página —</span>
+            <button id="gallery-next" type="button" disabled>Siguiente →</button>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <dialog class="photo-dialog" id="photo-dialog" aria-labelledby="photo-dialog-title">
+      <button class="photo-dialog-close" id="photo-dialog-close" type="button" aria-label="Cerrar fotografía">×</button>
+      <figure>
+        <img id="photo-dialog-image" alt="" />
+        <figcaption>
+          <span class="section-kicker">CAPTURA HISTÓRICA</span>
+          <strong id="photo-dialog-title">Fotografía</strong>
+          <span id="photo-dialog-meta">—</span>
+        </figcaption>
+      </figure>
+    </dialog>
+
+    <div class="auth-overlay" id="auth-overlay" role="dialog" aria-modal="true" aria-labelledby="login-title">
+      <section class="auth-card">
+        <div class="auth-brand" aria-hidden="true">🌿</div>
+        <span class="section-kicker">ACCESO LOCAL</span>
+        <h2 id="login-title">Módulo Hongos</h2>
+        <p>Inicia sesión para consultar el monitoreo. Los administradores también pueden operar el simulador y los relés.</p>
+        <form class="login-form" id="login-form">
+          <label for="login-username">Usuario</label>
+          <input id="login-username" name="username" type="text" autocomplete="username" maxlength="64" required />
+          <label for="login-password">Contraseña</label>
+          <input id="login-password" name="password" type="password" autocomplete="current-password" maxlength="128" required />
+          <p class="login-error" id="login-error" role="alert" hidden></p>
+          <button class="login-submit" id="login-submit" type="submit">Iniciar sesión</button>
+        </form>
+        <p class="auth-help">Las credenciales se crean con el seed y nunca se muestran en esta página.</p>
+      </section>
+    </div>
+
+    <div class="toast-wrap" id="toast-wrap" aria-live="polite"></div>
+  </body>
+</html>

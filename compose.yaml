@@ -1,0 +1,21 @@
+name: mycelium-iot-v2
+
+services:
+  mongodb:
+    image: mongo:8.0
+    container_name: mycelium-iot-mongodb
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${MONGODB_DOCKER_PORT:-27018}:27017"
+    volumes:
+      - mycelium_mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "quit(db.runCommand({ ping: 1 }).ok ? 0 : 2)"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+volumes:
+  mycelium_mongodb_data:
+    name: mycelium-iot-v2-mongodb-data

@@ -1,0 +1,33 @@
+# Dependencias y artefactos
+node_modules/
+dist/
+coverage/
+reports/
+tests/load/jmeter.properties
+*.tsbuildinfo
+
+# Configuración local y secretos
+.env
+.env.*
+!.env.example
+!deploy/.env.production.example
+
+# Logs, temporales y datos locales
+*.log
+logs/
+tmp/
+temp/
+.cache/
+data/
+
+# IDE y sistema operativo
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Fotografías históricas: se importarán mediante un proceso controlado
+public/photos/*
+!public/photos/.gitkeep
+!public/photos/sample/
+!public/photos/sample/*.jpg
