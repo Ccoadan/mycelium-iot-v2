@@ -14,6 +14,8 @@ El reporte final registrará bugs, vulnerabilidades, smells, cobertura, compleji
 
 ## Pipeline GitHub Actions
 
+La primera ejecución remota del pipeline finalizó correctamente: <https://github.com/Ccoadan/mycelium-iot-v2/actions/runs/31330748354>.
+
 `.github/workflows/ci-cd.yml` se activa en cada `push` y `pull_request` hacia `main`, además de permitir ejecución manual.
 
 ```text

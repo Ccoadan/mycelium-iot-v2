@@ -17,7 +17,7 @@ La compuerta automatizada exige 80 % de sentencias y líneas, 75 % de ramas y 85
 
 ## Métricas pendientes de SonarQube
 
-Complejidad ciclomática, duplicación, Maintainability Index equivalente, bugs, vulnerabilidades, smells y deuda técnica se incorporarán después de la primera ejecución en GitHub. No se consignarán valores estimados como si fueran mediciones.
+Complejidad ciclomática, duplicación, Maintainability Index equivalente, bugs, vulnerabilidades, smells y deuda técnica se incorporarán después de la primera ejecución con SonarQube Cloud. No se consignarán valores estimados como si fueran mediciones.
 
 ## Registro inicial de defectos de calidad
 
@@ -26,7 +26,7 @@ Complejidad ciclomática, duplicación, Maintainability Index equivalente, bugs,
 | CAL-001 | No existía medición ni umbral de cobertura. | Media | Corregido |
 | CAL-002 | Vitest 2.1.9 tenía vulnerabilidades conocidas en herramientas de desarrollo. | Alta | Corregido con Vitest 3.2.6 |
 | CAL-003 | Solo MongoDB estaba definido en Docker; la aplicación no era desplegable como unidad. | Alta | Corregido y validado localmente; pendiente VPS |
-| CAL-004 | No existía pipeline CI/CD ni configuración SonarQube. | Alta | Configurado; pendiente primera ejecución GitHub |
+| CAL-004 | No existía pipeline CI/CD ni configuración SonarQube. | Alta | CI validado en GitHub; pendiente análisis SonarQube Cloud |
 | CAL-005 | El proyecto todavía no tenía repositorio Git. | Alta | Corregido; publicado en GitHub |
 
 En esta línea base existen 5 hallazgos: 3 cerrados y 2 con corrección implementada pendiente de validación externa. No se detectó un defecto crítico de producción.

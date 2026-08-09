@@ -5,11 +5,11 @@ Este directorio reúne las fuentes verificables del documento técnico. La colec
 | Entregable | Fuente o ubicación | Estado |
 |---|---|---|
 | Documento técnico | Archivos `01` a `10` de este directorio | Fuentes iniciales completas; pendiente consolidación final |
-| Repositorio GitHub | Raíz del proyecto | Pendiente de crear remoto |
-| Reporte SonarQube | `sonar-project.properties` y GitHub Actions | Configurado; pendiente primera ejecución remota |
+| Repositorio GitHub | <https://github.com/Ccoadan/mycelium-iot-v2> | Publicado |
+| Reporte SonarQube | `sonar-project.properties` y GitHub Actions | Configurado; pendiente crear proyecto y credenciales en SonarQube Cloud |
 | Scripts Selenium | `tests/system/` | Implementados; pendiente evidencia contra URL final |
 | Scripts JMeter | `tests/load/` | Implementados; pendiente evidencia contra URL final |
-| Pipeline GitHub Actions | `.github/workflows/ci-cd.yml` | Implementado; pendiente primera ejecución remota |
+| Pipeline GitHub Actions | `.github/workflows/ci-cd.yml` | Validado en GitHub: primera ejecución aprobada |
 | Presentación, máximo 10 diapositivas | Se preparará con resultados finales | Pendiente |
 | Aplicación pública | `deploy/` y VPS | Preparada localmente; pendiente despliegue |
 
