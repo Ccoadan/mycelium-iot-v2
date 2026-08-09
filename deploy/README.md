@@ -1,5 +1,7 @@
 # Despliegue en VPS
 
+La configuración está ajustada para la VPS académica de 1 GB de RAM con 2 GB de swap. MongoDB, la aplicación y Caddy tienen límites de memoria explícitos; el puerto de MongoDB no se publica en el host.
+
 Esta configuración ejecuta Caddy, la aplicación, una inicialización idempotente y MongoDB sin publicar el puerto de la base.
 
 ## Preparación del archivo secreto

@@ -39,7 +39,7 @@ Cada requisito tiene un criterio medible y un mecanismo de verificación.
 | RNF-USA-02 | Todo error de acceso o conectividad mostrará un mensaje comprensible sin detalles internos. | Selenium y pruebas API |
 | RNF-USA-03 | Las fechas visibles se presentarán en `America/Lima` y la persistencia utilizará UTC. | Pruebas de exportación/UI |
 | RNF-USA-04 | El rol y la sesión activa serán visibles permanentemente después del acceso. | Selenium |
-| RNF-ESC-01 | La aplicación soportará al menos 10 usuarios concurrentes en la VPS de 2 GB manteniendo RNF-REN-01 a 03. | JMeter |
+| RNF-ESC-01 | La aplicación soportará al menos 10 usuarios concurrentes en la VPS de 1 GB con 2 GB de swap manteniendo RNF-REN-01 a 03. | JMeter |
 | RNF-ESC-02 | Las consultas de último dato e historial utilizarán índices compuestos verificables. | Prueba de seed y revisión |
 | RNF-ESC-03 | El almacenamiento fotográfico podrá sustituirse sin modificar rutas ni reglas de negocio. | Interfaz `PhotoStorage` |
 | RNF-MAN-01 | TypeScript compilará en modo estricto sin errores. | Pipeline |
