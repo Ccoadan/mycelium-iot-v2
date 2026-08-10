@@ -1,0 +1,118 @@
+name: Prueba de carga JMeter
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_production:
+        description: Confirmo que deseo probar la VPS de producción
+        required: true
+        type: boolean
+        default: false
+      users:
+        description: Usuarios virtuales
+        required: true
+        type: choice
+        options: ['1', '5', '10']
+        default: '10'
+      cycles:
+        description: Ciclos por usuario
+        required: true
+        type: choice
+        options: ['1', '5', '10']
+        default: '10'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: jmeter-production
+  cancel-in-progress: false
+
+jobs:
+  load-test:
+    name: JMeter contra VPS
+    if: ${{ inputs.confirm_production }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    env:
+      JMETER_VERSION: 5.6.3
+      JMETER_VIEWER_USERNAME: ${{ secrets.JMETER_VIEWER_USERNAME }}
+      JMETER_VIEWER_PASSWORD: ${{ secrets.JMETER_VIEWER_PASSWORD }}
+      JMETER_USERS: ${{ inputs.users }}
+      JMETER_CYCLES: ${{ inputs.cycles }}
+      JMETER_RAMP_SECONDS: ${{ inputs.users }}
+
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v6
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20.19.0
+          cache: npm
+
+      - name: Configurar Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Instalar dependencias del validador
+        run: npm ci
+
+      - name: Comprobar credenciales protegidas
+        shell: bash
+        run: |
+          if [[ -z "$JMETER_VIEWER_USERNAME" || -z "$JMETER_VIEWER_PASSWORD" ]]; then
+            echo "::error title=Configuración JMeter::Faltan JMETER_VIEWER_USERNAME o JMETER_VIEWER_PASSWORD."
+            exit 1
+          fi
+          printf '::add-mask::%s\n' "$JMETER_VIEWER_USERNAME" "$JMETER_VIEWER_PASSWORD"
+
+      - name: Descargar y verificar Apache JMeter
+        shell: bash
+        run: |
+          archive="$RUNNER_TEMP/apache-jmeter-$JMETER_VERSION.zip"
+          checksum="$archive.sha512"
+          url="https://dlcdn.apache.org/jmeter/binaries/apache-jmeter-$JMETER_VERSION.zip"
+          curl --fail --location --retry 3 --output "$archive" "$url"
+          curl --fail --location --retry 3 --output "$checksum" "$url.sha512"
+          expected="$(awk '{print toupper($1)}' "$checksum")"
+          actual="$(sha512sum "$archive" | awk '{print toupper($1)}')"
+          if [[ "$actual" != "$expected" ]]; then
+            echo "::error title=Integridad JMeter::La suma SHA-512 no coincide."
+            exit 1
+          fi
+          unzip -q "$archive" -d "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/apache-jmeter-$JMETER_VERSION/bin" >> "$GITHUB_PATH"
+
+      - name: Ejecutar carga controlada
+        shell: bash
+        run: |
+          mkdir -p reports/jmeter/github
+          jmeter -n \
+            -t tests/load/mycelium-load-test.jmx \
+            -Jbase_protocol=https \
+            -Jbase_host=206-189-201-212.sslip.io \
+            -Jbase_port=443 \
+            -Jviewer_username="$JMETER_VIEWER_USERNAME" \
+            -Jviewer_password="$JMETER_VIEWER_PASSWORD" \
+            -Jthreads="$JMETER_USERS" \
+            -Jramp_seconds="$JMETER_RAMP_SECONDS" \
+            -Jloops="$JMETER_CYCLES" \
+            -l reports/jmeter/github/results.jtl \
+            -e -o reports/jmeter/github/html -f
+
+      - name: Validar umbrales académicos
+        run: npx tsx scripts/validate-jmeter-results.ts reports/jmeter/github/html/statistics.json
+
+      - name: Conservar evidencia JMeter
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: evidencia-jmeter-${{ github.run_number }}
+          path: reports/jmeter/github/
+          if-no-files-found: warn
+          retention-days: 30

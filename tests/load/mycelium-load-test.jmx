@@ -22,7 +22,7 @@
         <stringProp name="ThreadGroup.ramp_time">${__P(ramp_seconds,10)}</stringProp>
         <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
         <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Ciclos">
-          <stringProp name="LoopController.loops">${__P(loops,5)}</stringProp>
+          <stringProp name="LoopController.loops">${__P(loops,10)}</stringProp>
           <boolProp name="LoopController.continue_forever">false</boolProp>
         </elementProp>
       </ThreadGroup>
