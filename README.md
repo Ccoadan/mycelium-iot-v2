@@ -343,6 +343,8 @@ npm run verify
 
 Incluye TypeScript estricto, validación sintáctica del JavaScript del dashboard, compilación de producción y toda la suite unitaria/de integración. El detalle de controles y límites conocidos está en [`docs/QUALITY.md`](docs/QUALITY.md).
 
+En GitHub Actions, una segunda compuerta levanta MongoDB y la aplicación de forma aislada, genera datos temporales y ejecuta tres recorridos Selenium en Chrome. Solo después de aprobar calidad y E2E se habilita el despliegue automático a la VPS. Las capturas, el CSV validado, los registros y `results.json` se conservan como artefacto durante 30 días.
+
 Validación autocontenida de la base de las Fases 1 y 2:
 
 ```powershell

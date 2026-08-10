@@ -24,17 +24,22 @@ npm ci
   -> TypeScript estricto
   -> validación JavaScript frontend
   -> build
-  -> 35 pruebas y cobertura
+  -> 36 pruebas y cobertura
   -> SonarQube
   -> artefacto HTML/LCOV/JUnit
+  -> MongoDB y aplicación E2E aislados
+  -> Selenium: invitado, admin y viewer
+  -> capturas, CSV y reporte JSON
   -> despliegue VPS solo en main
 ```
 
-El despliegue exige que la compuerta de calidad apruebe. Utiliza un usuario no privilegiado de la VPS y cuatro secretos de GitHub:
+Selenium genera credenciales aleatorias en cada ejecución, importa seis fotos, crea 21 mediciones y valida la interfaz en Chrome headless. No usa la base ni las credenciales de producción. El despliegue exige que aprueben tanto la compuerta de calidad como el job E2E.
+
+El CD utiliza un usuario no privilegiado de la VPS y cuatro secretos de GitHub:
 
 - `VPS_HOST`;
 - `VPS_USER`;
 - `VPS_SSH_PRIVATE_KEY`;
 - `VPS_KNOWN_HOSTS`.
 
-La clave de despliegue será diferente de la clave SSH personal. La VPS conservará `deploy/.env.production` fuera de Git y actualizará el repositorio con `git pull --ff-only`, evitando sobrescribir cambios inesperados.
+La clave de despliegue es diferente de la clave SSH personal. La VPS conserva `deploy/.env.production` fuera de Git y actualiza el repositorio con `git pull --ff-only`, evitando sobrescribir cambios inesperados.

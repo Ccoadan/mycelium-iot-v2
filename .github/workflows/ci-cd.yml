@@ -68,9 +68,124 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
+  e2e:
+    name: Selenium en entorno aislado
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      mongodb:
+        image: mongo:8.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 })'"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      APP_ENV: test
+      HOST: 127.0.0.1
+      PORT: 3000
+      MONGODB_URI: mongodb://127.0.0.1:27017
+      MONGODB_DB_NAME: mycelium_e2e_${{ github.run_id }}
+      MONGODB_SERVER_SELECTION_TIMEOUT_MS: 10000
+      SEED_ADMIN_USERNAME: e2e-admin
+      SEED_VIEWER_USERNAME: e2e-viewer
+      BCRYPT_ROUNDS: 10
+      AUTH_SESSION_TTL_SECONDS: 3600
+      AUTH_COOKIE_NAME: mycelium_e2e_session
+      AUTH_LOGIN_MAX_FAILURES: 5
+      AUTH_LOGIN_WINDOW_SECONDS: 300
+      AUTH_LOGIN_BLOCK_SECONDS: 300
+      PHOTO_STORAGE_LOCAL_ROOT: ./public/photos
+      SIMULATION_INTERVAL_SECONDS: 60
+      SIMULATION_AUTO_START: false
+      SIMULATION_API_CONTROL_ENABLED: true
+      E2E_BASE_URL: http://127.0.0.1:3000
+      E2E_ADMIN_USERNAME: e2e-admin
+      E2E_VIEWER_USERNAME: e2e-viewer
+      E2E_HEADLESS: true
+      E2E_ALLOW_MUTATIONS: true
+      E2E_ARTIFACT_DIR: reports/selenium
+
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v6
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20.19.0
+          cache: npm
+
+      - name: Instalar dependencias bloqueadas
+        run: npm ci
+
+      - name: Generar credenciales efímeras
+        shell: bash
+        run: |
+          admin_password="$(openssl rand -hex 24)"
+          viewer_password="$(openssl rand -hex 24)"
+          jwt_secret="$(openssl rand -hex 32)"
+          printf '::add-mask::%s\n' "$admin_password" "$viewer_password" "$jwt_secret"
+          {
+            printf 'SEED_ADMIN_PASSWORD=%s\n' "$admin_password"
+            printf 'E2E_ADMIN_PASSWORD=%s\n' "$admin_password"
+            printf 'SEED_VIEWER_PASSWORD=%s\n' "$viewer_password"
+            printf 'E2E_VIEWER_PASSWORD=%s\n' "$viewer_password"
+            printf 'JWT_SECRET=%s\n' "$jwt_secret"
+          } >> "$GITHUB_ENV"
+
+      - name: Compilar la aplicación E2E
+        run: npm run build
+
+      - name: Preparar datos aislados
+        run: |
+          npm run seed:prod
+          npm run photos:import-samples:prod
+
+      - name: Iniciar aplicación temporal
+        shell: bash
+        run: |
+          mkdir -p "$E2E_ARTIFACT_DIR"
+          nohup node dist/server.js > "$E2E_ARTIFACT_DIR/server.log" 2>&1 &
+          echo "$!" > "$RUNNER_TEMP/mycelium-e2e-server.pid"
+          for attempt in {1..30}; do
+            if curl --fail --silent "$E2E_BASE_URL/api/health" > "$E2E_ARTIFACT_DIR/health.json"; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat "$E2E_ARTIFACT_DIR/server.log"
+          exit 1
+
+      - name: Generar mediciones de prueba
+        run: npm run simulation:once
+
+      - name: Ejecutar recorridos Selenium
+        run: npm run test:selenium
+
+      - name: Detener aplicación temporal
+        if: always()
+        shell: bash
+        run: |
+          if [[ -f "$RUNNER_TEMP/mycelium-e2e-server.pid" ]]; then
+            kill "$(cat "$RUNNER_TEMP/mycelium-e2e-server.pid")" 2>/dev/null || true
+          fi
+
+      - name: Conservar evidencia Selenium
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: evidencia-selenium-${{ github.run_number }}
+          path: reports/selenium/
+          if-no-files-found: warn
+          retention-days: 30
+
   deploy:
     name: Desplegar en VPS
-    needs: quality
+    needs: [quality, e2e]
     if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15

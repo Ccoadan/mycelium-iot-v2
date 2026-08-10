@@ -8,7 +8,7 @@
 | Integración | MongoDB, autenticación, control, mediciones, fotos, exportación y seed | Aprobado |
 | Sistema | Aplicación completa, MongoDB, proxy y persistencia | Pendiente ejecución en Docker/VPS |
 | Aceptación | Flujos invitado/admin/viewer y criterios RNF seleccionados | Pendiente ejecución contra URL pública |
-| Funcionales automáticas | Dos recorridos Selenium en Chrome | Script implementado |
+| Funcionales automáticas | Tres recorridos Selenium en Chrome contra un entorno aislado | Integrado como compuerta previa al despliegue |
 | Carga | Login viewer, salud, últimas mediciones e historial | JMX implementado |
 
 ## Casos de aceptación
@@ -27,6 +27,6 @@
 
 ## Criterio de salida
 
-La entrega es aceptable cuando `npm run verify:ci` aprueba, SonarQube no presenta incidencias críticas nuevas, Selenium aprueba ambos roles, JMeter mantiene menos de 1 % de error y el despliegue conserva MongoDB y fotografías después de reiniciar.
+La entrega es aceptable cuando `npm run verify:ci` aprueba, SonarQube no presenta incidencias críticas nuevas, Selenium aprueba invitado y ambos roles, JMeter mantiene menos de 1 % de error y el despliegue conserva MongoDB y fotografías después de reiniciar.
 
 La colección Postman no forma parte del alcance acordado.
