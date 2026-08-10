@@ -259,11 +259,12 @@ function limaInputValue(date) {
   return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
 }
 
-function limaInputToIso(value) {
+function limaInputToIso(value, endOfMinute = false) {
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?$/.test(value)) {
     throw new Error('Selecciona fechas válidas para el historial');
   }
-  const timestamp = new Date(`${value.length === 16 ? `${value}:00` : value}-05:00`);
+  const seconds = endOfMinute ? ':59.999' : ':00';
+  const timestamp = new Date(`${value.length === 16 ? `${value}${seconds}` : value}-05:00`);
   if (!Number.isFinite(timestamp.getTime())) throw new Error('Selecciona fechas válidas para el historial');
   return timestamp.toISOString();
 }
@@ -277,7 +278,7 @@ function setHistoryDefaults() {
 function buildHistoryParameters(includePagination = true) {
   const parameters = new URLSearchParams({
     from: limaInputToIso(elements['history-from'].value),
-    to: limaInputToIso(elements['history-to'].value),
+    to: limaInputToIso(elements['history-to'].value, true),
   });
   if (elements['history-type'].value) parameters.set('type', elements['history-type'].value);
   if (elements['history-sensor'].value) parameters.set('sensorId', elements['history-sensor'].value);

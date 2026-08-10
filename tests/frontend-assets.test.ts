@@ -26,6 +26,7 @@ describe('dashboard estático', () => {
     expect(html).toContain('id="photo-gallery"');
     expect(html).toContain('id="latest-photo-image"');
     expect(javascript).toContain('/api/photos/latest');
+    expect(javascript).toContain("to: limaInputToIso(elements['history-to'].value, true)");
     expect(javascript).toContain('/api/photos?page=');
     expect(html).toContain('autocomplete="current-password"');
     expect(html).toContain('data-relay="relay3"');
