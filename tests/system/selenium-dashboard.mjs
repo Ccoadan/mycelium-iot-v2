@@ -17,6 +17,7 @@ const screenshotDirectory = resolve(process.env.E2E_SCREENSHOT_DIR ?? artifactDi
 const downloadDirectory = resolve(process.env.E2E_DOWNLOAD_DIR ?? resolve(artifactDirectory, 'downloads'));
 const startedAt = new Date();
 const scenarios = [];
+let activeScenario = 'bootstrap';
 
 if (!adminUsername || !adminPassword || !viewerUsername || !viewerPassword) {
   throw new Error(
@@ -68,11 +69,23 @@ async function writeResult(status, error = null) {
     startedAt: startedAt.toISOString(),
     completedAt: completedAt.toISOString(),
     durationMs: completedAt.getTime() - startedAt.getTime(),
+    activeScenario,
     scenarios,
     ...(error ? { error: error instanceof Error ? error.message : String(error) } : {}),
   };
   await writeFile(resolve(artifactDirectory, 'results.json'), `${JSON.stringify(result, null, 2)}\n`, 'utf8');
   return result;
+}
+
+function reportGitHubError(error) {
+  if (process.env.GITHUB_ACTIONS !== 'true') return;
+  const message = (error instanceof Error ? error.message : String(error))
+    .replaceAll('%', '%25')
+    .replaceAll('\r', '%0D')
+    .replaceAll('\n', '%0A');
+  console.error(
+    `::error file=tests/system/selenium-dashboard.mjs,title=Selenium · ${activeScenario}::${message}`,
+  );
 }
 
 async function login(username, password) {
@@ -169,6 +182,7 @@ async function downloadAndValidateCsv() {
 }
 
 try {
+  activeScenario = 'public-dashboard';
   await driver.get(baseUrl);
   await driver.wait(until.titleContains('Módulo Hongos'), 10_000);
   const loginTitle = await driver.findElement(By.id('login-title')).getAttribute('textContent');
@@ -195,6 +209,7 @@ try {
   await capture('00-public-dashboard');
   scenarios.push({ name: 'public-dashboard', status: 'passed', historyMeasurements: publicHistoryCount });
 
+  activeScenario = 'admin-dashboard';
   await login(adminUsername, adminPassword);
   assert.match(await driver.findElement(By.id('auth-role')).getText(), /Administrador/i);
   await driver.wait(async () => (await driver.findElements(By.css('.sensor-tile'))).length === 9, 15_000);
@@ -213,6 +228,7 @@ try {
   });
   await logout();
 
+  activeScenario = 'viewer-dashboard';
   await login(viewerUsername, viewerPassword);
   assert.match(await driver.findElement(By.id('auth-role')).getText(), /Solo lectura/i);
   assert.equal(await driver.findElement(By.id('simulation-toggle')).isEnabled(), false);
@@ -230,9 +246,11 @@ try {
   });
   await logout();
 
+  activeScenario = 'completed';
   const result = await writeResult('passed');
   console.info(JSON.stringify(result, null, 2));
 } catch (error) {
+  reportGitHubError(error);
   await driver.findElement(By.id('login-password')).then((element) => element.clear()).catch(() => undefined);
   await capture('99-failure').catch(() => undefined);
   await writeResult('failed', error).catch(() => undefined);
