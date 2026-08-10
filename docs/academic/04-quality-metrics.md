@@ -46,11 +46,11 @@ Las 29 incidencias restantes son mantenibilidad no bloqueante: 21 mayores y 8 me
 |---|---|---|---|
 | CAL-001 | No existía medición ni umbral de cobertura. | Media | Corregido |
 | CAL-002 | Vitest 2.1.9 tenía vulnerabilidades conocidas en herramientas de desarrollo. | Alta | Corregido con Vitest 3.2.6 |
-| CAL-003 | Solo MongoDB estaba definido en Docker; la aplicación no era desplegable como unidad. | Alta | Corregido y validado localmente; pendiente VPS |
+| CAL-003 | Solo MongoDB estaba definido en Docker; la aplicación no era desplegable como unidad. | Alta | Corregido y desplegado en la VPS mediante CI/CD |
 | CAL-004 | No existía pipeline CI/CD ni configuración SonarQube. | Alta | Corregido y validado en GitHub y SonarQube Cloud |
 | CAL-005 | El proyecto todavía no tenía repositorio Git. | Alta | Corregido; publicado en GitHub |
 
-En esta línea base existen 5 hallazgos: 4 cerrados y 1 con corrección implementada pendiente de despliegue en la VPS. No se detectó un defecto crítico de producción.
+Los 5 hallazgos iniciales están cerrados. No se detectó un defecto crítico de producción.
 
 ## Productividad
 

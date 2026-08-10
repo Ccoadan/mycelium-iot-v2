@@ -28,7 +28,7 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:selenium": "node tests/system/selenium-dashboard.mjs",
-    "test:jmeter": "jmeter -n -t tests/load/mycelium-load-test.jmx -q tests/load/jmeter.properties -l reports/jmeter/results.jtl -e -o reports/jmeter/html -f",
+    "test:jmeter": "node -e \"require('fs').mkdirSync('reports/jmeter',{recursive:true})\" && jmeter -n -t tests/load/mycelium-load-test.jmx -q tests/load/jmeter.properties -l reports/jmeter/results.jtl -e -o reports/jmeter/html -f",
     "check:frontend": "node --check public/js/dashboard.js",
     "typecheck": "tsc --noEmit",
     "verify": "npm run typecheck && npm run check:frontend && npm run build && npm test",

@@ -5,7 +5,7 @@
 | P0 | Crear repositorio GitHub sin secretos y ejecutar CI/CD. | Completado | Pipeline verde y URL del repositorio |
 | P0 | Desplegar aplicación, MongoDB y Caddy en la VPS. | Completado | <https://206-189-201-212.sslip.io> y contenedores saludables |
 | P0 | Ejecutar SonarQube y resolver incidencias críticas. | Completado | Quality Gate aprobado, 0 bugs y 0 vulnerabilidades |
-| P1 | Automatizar Selenium antes del despliegue y ejecutar JMeter contra la VPS. | En progreso: Selenium aprobado; JMeter pendiente | Artefacto Selenium, JTL y dashboard HTML |
+| P1 | Automatizar Selenium antes del despliegue y ejecutar JMeter contra la VPS. | Completado | Selenium en CI; JMeter con 310 muestras, 0 % de errores y dashboard HTML |
 | P1 | Reducir los 29 code smells no bloqueantes reportados por SonarQube. | Pendiente | Comparación de métricas entre análisis |
 | P1 | Añadir pruebas unitarias de configuración y arranque para reducir líneas sin cobertura. | Pendiente | Cobertura y nuevas pruebas |
 | P1 | Automatizar respaldos de MongoDB y fotografías, con restauración comprobada. | Pendiente | Registro de backup/restore |
