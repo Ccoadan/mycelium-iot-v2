@@ -8,7 +8,7 @@
 | Integración | MongoDB, autenticación, control, mediciones, fotos, exportación y seed | Aprobado |
 | Sistema | Aplicación completa, MongoDB, proxy y persistencia | Pendiente ejecución en Docker/VPS |
 | Aceptación | Flujos invitado/admin/viewer y criterios RNF seleccionados | Pendiente ejecución contra URL pública |
-| Funcionales automáticas | Tres recorridos Selenium en Chrome contra un entorno aislado | Integrado como compuerta previa al despliegue |
+| Funcionales automáticas | Tres recorridos Selenium en Chrome contra un entorno aislado | Aprobado en GitHub Actions como compuerta previa al despliegue |
 | Carga | Login viewer, salud, últimas mediciones e historial | JMX implementado |
 
 ## Casos de aceptación

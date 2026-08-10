@@ -16,6 +16,8 @@ El análisis posterior a la remediación obtuvo Quality Gate aprobado, 0 bugs, 0
 
 La primera ejecución remota del pipeline finalizó correctamente: <https://github.com/Ccoadan/mycelium-iot-v2/actions/runs/31330748354>. La ejecución con SonarQube y las correcciones prioritarias también fue aprobada: <https://github.com/Ccoadan/mycelium-iot-v2/actions/runs/31331977476>.
 
+La ejecución integral con la compuerta Selenium y el despliegue automático fue aprobada el 9 de agosto de 2026: <https://github.com/Ccoadan/mycelium-iot-v2/actions/runs/31355268511>. Los tres trabajos —calidad, E2E y despliegue— finalizaron correctamente; la evidencia Selenium quedó disponible como artefacto de la ejecución.
+
 `.github/workflows/ci-cd.yml` se activa en cada `push` y `pull_request` hacia `main`, además de permitir ejecución manual.
 
 ```text
