@@ -17,6 +17,14 @@ export interface LatestMeasurementView {
   timestamp: string | null;
 }
 
+export interface LatestMeasurementsResponse {
+  generatedAt: string;
+  summary: { configured: number; active: number; reporting: number; stale: number };
+  measurements: LatestMeasurementView[];
+}
+
+export const LATEST_MEASUREMENTS_CACHE_TTL_MS = 5_000;
+
 export interface HistoryQuery {
   type?: SensorType;
   sensorId?: number;
@@ -39,6 +47,9 @@ export interface ResolvedMeasurementRange {
 }
 
 export class MeasurementQueryService {
+  private latestCache: { expiresAt: number; payload: LatestMeasurementsResponse } | undefined;
+  private latestRequest: Promise<LatestMeasurementsResponse> | undefined;
+
   public constructor(
     private readonly repository: MeasurementRepository,
     private readonly staleAfterSeconds: number,
@@ -49,16 +60,34 @@ export class MeasurementQueryService {
     return this.repository.getSensors();
   }
 
-  public async getLatest(): Promise<{
-    generatedAt: string;
-    summary: { configured: number; active: number; reporting: number; stale: number };
-    measurements: LatestMeasurementView[];
-  }> {
+  public async getLatest(): Promise<LatestMeasurementsResponse> {
+    const now = this.clock();
+    if (this.latestCache && this.latestCache.expiresAt > now.getTime()) {
+      return this.latestCache.payload;
+    }
+    if (this.latestRequest) {
+      return this.latestRequest;
+    }
+
+    const request = this.loadLatest(now);
+    this.latestRequest = request;
+    try {
+      const payload = await request;
+      this.latestCache = {
+        expiresAt: now.getTime() + LATEST_MEASUREMENTS_CACHE_TTL_MS,
+        payload,
+      };
+      return payload;
+    } finally {
+      if (this.latestRequest === request) this.latestRequest = undefined;
+    }
+  }
+
+  private async loadLatest(now: Date): Promise<LatestMeasurementsResponse> {
     const [sensors, latestMeasurements] = await Promise.all([
       this.repository.getSensors(),
       this.repository.getLatestMeasurements(),
     ]);
-    const now = this.clock();
     const latestByIdentity = new Map(
       latestMeasurements.map((measurement) => [identity(measurement.sensorId, measurement.type), measurement]),
     );
