@@ -28,3 +28,12 @@ El rendimiento agregado fue de 10.50 solicitudes por segundo. Los cuatro criteri
 La primera ejecución estable no cumplió el objetivo de últimas mediciones: alcanzó un p95 de 4,511 ms. La investigación mostró consultas idénticas concurrentes y una ordenación que no seguía el índice compuesto. Se alineó la consulta con el índice `sensorId + type + timestamp`, se combinaron solicitudes simultáneas y se añadió un caché de 5 segundos, inferior al refresco del dashboard de 10 segundos. La comprobación de MongoDB de `/api/health` también combina solicitudes durante 2 segundos.
 
 Las optimizaciones tienen pruebas automáticas y fueron desplegadas únicamente después de aprobar calidad, Selenium y CI/CD. El JTL y el dashboard HTML finales se generaron en `reports/jmeter/results-final-10-users-10-cycles.jtl` y `reports/jmeter/html-final-10-users-10-cycles/`; esas carpetas se excluyen de Git y deben conservarse como evidencia o artefacto.
+
+## Validación remota en GitHub Actions
+
+El workflow manual fue comprobado el 10 de agosto de 2026 con dos ejecuciones:
+
+- [prueba inicial de 1 usuario y 1 ciclo](https://github.com/Ccoadan/mycelium-iot-v2/actions/runs/31439032008), aprobada;
+- [prueba académica de 10 usuarios y 10 ciclos](https://github.com/Ccoadan/mycelium-iot-v2/actions/runs/31439172088), aprobada.
+
+En ambas aprobaron individualmente la verificación de credenciales, descarga con SHA-512, carga controlada y validación automática de umbrales. GitHub publicó `evidencia-jmeter-1` y `evidencia-jmeter-2`, con JTL, dashboard HTML y `thresholds.json`, conservados durante 30 días.

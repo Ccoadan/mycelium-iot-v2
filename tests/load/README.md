@@ -17,3 +17,5 @@ La ejecución final del 10 de agosto de 2026 contra la VPS produjo 310 muestras,
 El workflow `.github/workflows/jmeter-manual.yml` solo se inicia desde **Actions → Prueba de carga JMeter → Run workflow**. Exige confirmar explícitamente la VPS y permite seleccionar 1, 5 o 10 usuarios y ciclos. GitHub debe contener los secretos `JMETER_VIEWER_USERNAME` y `JMETER_VIEWER_PASSWORD`.
 
 La ejecución descarga JMeter desde Apache, verifica SHA-512, prueba la URL pública, evalúa automáticamente los cuatro umbrales y conserva JTL, dashboard HTML y `thresholds.json` como artefacto durante 30 días. No forma parte del despliegue cotidiano y dos pruebas de carga nunca se ejecutan al mismo tiempo.
+
+Evidencia remota aprobada: [1 usuario](https://github.com/Ccoadan/mycelium-iot-v2/actions/runs/31439032008) y [10 usuarios](https://github.com/Ccoadan/mycelium-iot-v2/actions/runs/31439172088).

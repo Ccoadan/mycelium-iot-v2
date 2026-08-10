@@ -37,6 +37,8 @@ npm ci
 
 Selenium genera credenciales aleatorias en cada ejecución, importa seis fotos, crea 21 mediciones y valida la interfaz en Chrome headless. No usa la base ni las credenciales de producción. El despliegue exige que aprueben tanto la compuerta de calidad como el job E2E.
 
+La carga se mantiene separada del despliegue cotidiano. El workflow manual `jmeter-manual.yml` exige confirmación de producción, utiliza credenciales protegidas del viewer, verifica la distribución Apache mediante SHA-512 y evalúa los umbrales antes de publicar el artefacto. La ejecución académica remota fue aprobada: <https://github.com/Ccoadan/mycelium-iot-v2/actions/runs/31439172088>.
+
 El CD utiliza un usuario no privilegiado de la VPS y cuatro secretos de GitHub:
 
 - `VPS_HOST`;
