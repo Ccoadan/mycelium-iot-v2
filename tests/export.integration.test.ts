@@ -21,6 +21,7 @@ import { MongoSimulationRepository } from '../src/repositories/simulation-reposi
 
 function authenticationFor(user: AuthenticatedUser | null): RequestAuthentication {
   return {
+    optionalUser: async () => user,
     requireUser: async () => {
       if (!user) throw new AuthenticationRequiredError('Debe iniciar sesión');
       return user;

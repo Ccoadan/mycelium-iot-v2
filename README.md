@@ -26,17 +26,17 @@ Incluido:
 - controles locales para iniciar, detener, ejecutar un ciclo y cambiar el intervalo;
 - auditoría estructurada de las operaciones del simulador;
 - control funcional de cuatro relés simulados con persistencia inmediata;
-- autorización por rol: `admin` modifica y `viewer` solo consulta;
+- matriz de acceso: el visitante consulta el monitoreo público, `viewer` añade galería y CSV, y `admin` además modifica relés y simulador;
 - auditoría estructurada de cada cambio real de relé;
 - login, consulta de sesión y logout con JWT en cookie `HttpOnly`;
 - revocación de sesiones mediante una versión persistida por usuario;
-- rutas de datos protegidas y validación anti-CSRF para acciones modificadoras;
+- separación explícita entre lecturas públicas y recursos autenticados, con validación anti-CSRF para acciones modificadoras;
 - auditoría de logins correctos, fallidos y cierres de sesión;
 - auditoría de las exportaciones con usuario, filtros y cantidad de filas;
 - última fotografía, galería paginada y visor ampliado con hora de Lima;
 - seis capturas históricas reales, seleccionadas e importadas de forma controlada;
 - metadatos fotográficos en MongoDB y archivos JPEG separados mediante una abstracción de almacenamiento;
-- acceso autenticado tanto al catálogo como al contenido de las imágenes;
+- última fotografía pública y acceso autenticado al catálogo y contenido de las fotografías históricas;
 - validación estricta de JSON, esquemas MongoDB reforzados y límite global de 16 KiB por solicitud API;
 - protección temporal frente a intentos repetidos de login y respuestas privadas sin caché;
 - política CSP, permisos del navegador restringidos y protección frente a `iframe`;
@@ -192,24 +192,25 @@ Incluye:
 - gráfica doble de temperatura y humedad de la bolsa seleccionada;
 - estado de API, MongoDB y simulador;
 - actualización automática de datos y estados vacíos, obsoletos o sin conexión;
-- cuatro interruptores de relés conectados a MongoDB, con permisos y confirmación visual;
-- formulario de acceso, identidad y rol visibles, y cierre de sesión;
-- historial con rango de fechas, variable, sensor y bolsa, tabla paginada y descarga CSV;
-- última captura del módulo, galería histórica responsive y visor ampliado.
+- estado público de cuatro relés conectados a MongoDB; sus interruptores solo se habilitan para `admin`;
+- acceso opcional, identidad y rol visibles, cierre de sesión y continuidad del dashboard como invitado;
+- historial público con rango de fechas, variable, sensor y bolsa, tabla paginada y descarga CSV autenticada;
+- última captura pública, galería histórica autenticada, responsive y con visor ampliado.
 
 Las gráficas se dibujan con SVG nativo y no requieren Chart.js. Los timestamps se reciben en UTC y se presentan en `America/Lima`.
 
 Endpoints de lectura incorporados:
 
-| Método | Ruta | Función |
-|---|---|---|
-| `GET` | `/api/sensors` | Configuración de los 21 sensores |
-| `GET` | `/api/measurements/latest` | Último documento real de cada sensor, ordenado por timestamp descendente |
-| `GET` | `/api/measurements/history` | Historial filtrado y paginado |
-| `GET` | `/api/export/csv` | Descarga CSV con los mismos filtros |
-| `GET` | `/api/photos/latest` | Metadatos de la captura más reciente |
-| `GET` | `/api/photos` | Galería paginada con `page` y `pageSize` |
-| `GET` | `/api/photos/:id/content` | Contenido JPEG protegido de una fotografía |
+| Método | Ruta | Función | Acceso |
+|---|---|---|---|
+| `GET` | `/api/sensors` | Configuración de los 21 sensores | Público |
+| `GET` | `/api/measurements/latest` | Último documento real de cada sensor, ordenado por timestamp descendente | Público |
+| `GET` | `/api/measurements/history` | Historial filtrado y paginado | Público |
+| `GET` | `/api/export/csv` | Descarga CSV con los mismos filtros | `viewer` o `admin` |
+| `GET` | `/api/photos/latest` | Metadatos de la captura más reciente | Público |
+| `GET` | `/api/photos/latest/content` | JPEG de la captura más reciente | Público |
+| `GET` | `/api/photos` | Galería paginada con `page` y `pageSize` | `viewer` o `admin` |
+| `GET` | `/api/photos/:id/content` | Contenido JPEG de una fotografía histórica | `viewer` o `admin` |
 
 Ejemplo de historial:
 
@@ -228,13 +229,13 @@ Filtros compartidos por el historial y el CSV:
 - `sensorId`: identificador de 0 a 9;
 - `bag`: bolsa de 1 a 9.
 
-El historial también acepta `page`, `pageSize` y `sort=asc|desc`. La respuesta incluye el total de documentos y páginas. Las combinaciones incompatibles, por ejemplo CO₂ ambiental con una bolsa, se rechazan con HTTP 400 en vez de devolver resultados ambiguos.
+El historial también acepta `page`, `pageSize` y `sort=asc|desc`. La respuesta incluye el total de documentos y páginas; una respuesta pública entrega como máximo 500 filas y acepta hasta la página 1 000. Las combinaciones incompatibles, por ejemplo CO₂ ambiental con una bolsa, se rechazan con HTTP 400 en vez de devolver resultados ambiguos.
 
 El CSV contiene las columnas `timestamp_utc`, `timestamp_lima`, `sensor_id`, `type`, `bag`, `value`, `unit` y `source`; usa UTF-8 con BOM y saltos CRLF para Excel. La exportación conserva el orden cronológico, limita cada archivo a 50 000 filas y protege celdas frente a fórmulas interpretadas por hojas de cálculo. Tanto `admin` como `viewer` pueden descargarlo. Cada descarga correcta registra `export.csv_generated` en `auditLogs` con el usuario, los filtros y el total exportado.
 
 ## Fotografías
 
-MongoDB conserva exclusivamente el nombre, la clave de almacenamiento, el origen, las fechas UTC, el tamaño, el tipo MIME y la resolución. Los bytes JPEG permanecen en `PHOTO_STORAGE_LOCAL_ROOT`; el frontend nunca recibe esa ruta local, únicamente un endpoint protegido por la cookie de sesión. La interfaz convierte las fechas a `America/Lima`.
+MongoDB conserva exclusivamente el nombre, la clave de almacenamiento, el origen, las fechas UTC, el tamaño, el tipo MIME y la resolución. Los bytes JPEG permanecen en `PHOTO_STORAGE_LOCAL_ROOT`; el frontend nunca recibe esa ruta local. Un alias sin identificador expone solo la captura más reciente, mientras la galería y cada fotografía histórica requieren la cookie de sesión. La interfaz convierte las fechas a `America/Lima`.
 
 La muestra contiene seis capturas reales de junio, julio y agosto de 2026. Incluye tomas iluminadas y nocturnas para representar el comportamiento auténtico de la cámara. No se copiaron los cientos de archivos del respaldo ni el código PHP de galería/carga.
 
@@ -244,7 +245,7 @@ La importación es idempotente y acepta como máximo 24 JPEG en la carpeta de mu
 npm run photos:import-samples
 ```
 
-La acción registra `photos.historical_sample_imported` en `auditLogs`. Tanto `admin` como `viewer` pueden ver fotografías; no existe todavía un endpoint de carga ni conexión con la ESP32-CAM real.
+La acción registra `photos.historical_sample_imported` en `auditLogs`. El visitante puede ver la captura más reciente; `admin` y `viewer` pueden recorrer toda la galería. No existe todavía un endpoint de carga ni conexión con la ESP32-CAM real.
 
 ## Autenticación y permisos
 
@@ -257,6 +258,16 @@ La sesión se firma con HS256 usando `JWT_SECRET` y se entrega únicamente en un
 | `POST` | `/api/auth/logout` | Revoca las sesiones del usuario, elimina la cookie y audita la salida |
 
 Los usuarios inactivos, tokens vencidos, alterados o emitidos antes de un logout reciben HTTP 401. Las acciones administrativas de relés y simulador exigen rol `admin`; un `viewer` conserva acceso de lectura y recibe HTTP 403 al intentar modificar. Las solicitudes modificadoras también exigen el encabezado interno del dashboard, como defensa adicional frente a CSRF.
+
+| Capacidad | Invitado | `viewer` | `admin` |
+|---|---:|---:|---:|
+| Dashboard, gráficos, historial y estado de relés | Sí | Sí | Sí |
+| Última fotografía | Sí | Sí | Sí |
+| Galería histórica completa | No | Sí | Sí |
+| Descarga CSV | No | Sí | Sí |
+| Modificar relés o simulador | No | No | Sí |
+
+Un HTTP 401 de `/api/auth/me` representa una visita anónima normal: no bloquea el dashboard ni abre el formulario automáticamente. El acceso se solicita únicamente cuando la persona elige iniciar sesión o intenta una capacidad protegida.
 
 El formulario no contiene contraseñas predeterminadas. Utilice las credenciales definidas en `.env` y aplicadas mediante `npm run seed`. Repetir el seed actualiza los hashes e invalida sesiones emitidas anteriormente.
 
@@ -275,10 +286,10 @@ No se contacta ningún ESP32. Al accionar un interruptor, la API actualiza el do
 
 | Método | Ruta | Función |
 |---|---|---|
-| `GET` | `/api/control` | Estado de los cuatro relés, actor local y permiso efectivo |
+| `GET` | `/api/control` | Estado público de los cuatro relés y permiso efectivo |
 | `PATCH` | `/api/control/:relay` | Actualiza un relé con `{ "enabled": true | false }` |
 
-El actor procede exclusivamente de la sesión autenticada. El rol se vuelve a comprobar contra el usuario activo de MongoDB en cada solicitud; no se acepta desde el navegador ni desde un encabezado manipulable.
+La lectura anónima no recibe la identidad de quien realizó el último cambio y siempre obtiene `canModify: false`. Para modificar, el actor procede exclusivamente de la sesión autenticada. El rol se vuelve a comprobar contra el usuario activo de MongoDB en cada solicitud; no se acepta desde el navegador ni desde un encabezado manipulable.
 
 ## Simulador IoT
 
@@ -356,7 +367,7 @@ npm run build
 npm test
 ```
 
-La suite también comprueba las Fases 3 a 9: continuidad entre ciclos y reinicios, rangos físicos, humedad en porcentaje, 21 inserciones por ciclo, recuperación del dato más reciente, historial filtrado y paginado, validación de rangos, CSV UTF-8 con fechas UTC/Lima, auditoría de exportación, persistencia de relés, login bcrypt, cookie `HttpOnly`, revocación, permisos `admin`/`viewer`, defensa de solicitudes modificadoras, lectura de metadatos JPEG, galería paginada, archivos fotográficos protegidos, límite de intentos de acceso, JSON estricto, tamaño máximo de solicitudes, cabeceras de seguridad y activos visuales sin referencias PHP/ADC.
+La suite también comprueba las Fases 3 a 9: continuidad entre ciclos y reinicios, rangos físicos, humedad en porcentaje, 21 inserciones por ciclo, recuperación del dato más reciente, historial filtrado y paginado, validación de rangos, CSV UTF-8 con fechas UTC/Lima, auditoría de exportación, persistencia de relés, login bcrypt, cookie `HttpOnly`, revocación, matriz invitado/`viewer`/`admin`, defensa de solicitudes modificadoras, última fotografía pública, galería paginada y archivos históricos protegidos, límite de intentos de acceso, JSON estricto, tamaño máximo de solicitudes, cabeceras de seguridad y activos visuales sin referencias PHP/ADC.
 
 ## Variables de entorno
 

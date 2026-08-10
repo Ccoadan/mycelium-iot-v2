@@ -20,6 +20,7 @@ import { seedDatabase } from '../src/services/seed/seed-database.js';
 
 function fixedAuthentication(actor: AuthenticatedUser): RequestAuthentication {
   return {
+    optionalUser: async () => actor,
     requireUser: async () => actor,
     requireAdmin: async () => {
       if (actor.role !== 'admin') throw new AuthorizationError('Requiere admin');

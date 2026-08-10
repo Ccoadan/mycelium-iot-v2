@@ -91,7 +91,7 @@ function toView(state: ControlState, actor: AuthenticatedUser | null): ControlVi
     relays: state.relays,
     lightingSource: state.lightingSource,
     updatedAt: state.updatedAt.toISOString(),
-    updatedBy: state.updatedBy,
+    updatedBy: actor ? state.updatedBy : 'Identidad protegida',
     actor: actor ? { username: actor.username, role: actor.role } : null,
     permissions: { canModify: actor?.role === 'admin' },
   };

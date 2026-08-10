@@ -23,7 +23,7 @@ export function createControlRoutes(dependencies: ControlRouteDependencies): Hon
 
   routes.get('/', async (context) => {
     try {
-      const actor = await dependencies.authentication.requireUser(context);
+      const actor = await dependencies.authentication.optionalUser(context);
       return context.json({ control: await dependencies.service.getControl(actor) });
     } catch (error) {
       return controlError(context, error);

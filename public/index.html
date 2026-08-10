@@ -9,8 +9,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&amp;family=DM+Sans:wght@300;400;500;600&amp;family=Playfair+Display:ital,wght@0,500;1,400&amp;display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/css/base.css?v=8" />
-    <script src="/js/dashboard.js?v=8" type="module"></script>
+    <link rel="stylesheet" href="/css/base.css?v=9" />
+    <script src="/js/dashboard.js?v=9" type="module"></script>
   </head>
   <body>
     <header class="header">
@@ -159,7 +159,7 @@
         <article class="card card-history">
           <div class="card-top history-heading">
             <div>
-              <span class="section-kicker">FASE 7 · CONSULTA Y DESCARGA</span>
+              <span class="section-kicker">FASE 7 · CONSULTA PÚBLICA</span>
               <h2 class="card-title" id="history-title">Historial de mediciones</h2>
             </div>
             <span class="phase-chip is-admin">UTC · Lima</span>
@@ -205,7 +205,7 @@
           <div class="history-table-wrap">
             <table class="history-table">
               <thead><tr><th>Fecha · Lima</th><th>Sensor</th><th>Variable</th><th>Bolsa</th><th>Valor</th><th>Origen</th></tr></thead>
-              <tbody id="history-table-body"><tr><td colspan="6" class="history-empty">Inicia sesión para consultar el historial.</td></tr></tbody>
+              <tbody id="history-table-body"><tr><td colspan="6" class="history-empty">Cargando historial de mediciones…</td></tr></tbody>
             </table>
           </div>
           <div class="history-pagination">
@@ -222,7 +222,7 @@
             <div><span class="section-kicker">SIMULACIÓN LOCAL</span><h2 class="card-title">Control</h2></div>
             <span class="phase-chip" id="control-role-chip">Cargando</span>
           </div>
-          <p class="phase-copy" id="control-context">Consultando el estado y los permisos del usuario local…</p>
+          <p class="phase-copy" id="control-context">El estado de los relés es público; modificarlos requiere una sesión de administrador.</p>
           <div class="control-list" id="control-list">
             <div class="control-row" data-control-row="relay1">
               <span><i>🌬</i><span><strong>Ventilador de entrada</strong><small data-control-status="relay1">Consultando…</small></span></span>
@@ -254,13 +254,13 @@
           </div>
           <button class="latest-photo-button" id="latest-photo-open" type="button" disabled>
             <img id="latest-photo-image" alt="" hidden />
-            <span class="camera-placeholder" id="latest-photo-empty"><span>📷</span><strong>Consultando cámara</strong><small>Esperando una fotografía publicada</small></span>
+            <span class="camera-placeholder" id="latest-photo-empty"><span>📷</span><strong>Consultando cámara</strong><small>Esperando la última fotografía pública</small></span>
           </button>
           <div class="camera-meta">
             <span><small>Captura · America/Lima</small><strong id="latest-photo-date">Sin fotografía</strong></span>
             <span><small>Origen</small><strong id="latest-photo-source">—</strong></span>
           </div>
-          <button class="camera-gallery-link" id="camera-gallery-link" type="button">Ver galería histórica ↓</button>
+          <button class="camera-gallery-link" id="camera-gallery-link" type="button">Ver galería completa ↓</button>
         </article>
       </section>
 
@@ -273,9 +273,9 @@
             </div>
             <span class="phase-chip is-admin" id="gallery-count">Esperando consulta</span>
           </div>
-          <p class="gallery-copy">Muestra real del experimento original. Las fechas se presentan en hora de Lima y los archivos se entregan únicamente a usuarios autenticados.</p>
+          <p class="gallery-copy">La última captura es pública. Inicia sesión para recorrer la galería completa del experimento original; las fechas se presentan en hora de Lima.</p>
           <div class="photo-gallery" id="photo-gallery" aria-live="polite">
-            <div class="gallery-empty">Inicia sesión para consultar las fotografías.</div>
+            <div class="gallery-empty">Inicia sesión para ver la galería completa.</div>
           </div>
           <div class="history-pagination gallery-pagination">
             <button id="gallery-prev" type="button" disabled>← Anterior</button>
@@ -298,12 +298,14 @@
       </figure>
     </dialog>
 
-    <div class="auth-overlay" id="auth-overlay" role="dialog" aria-modal="true" aria-labelledby="login-title">
+    <div class="auth-overlay" id="auth-overlay" role="dialog" aria-modal="true" aria-labelledby="login-title" hidden>
       <section class="auth-card">
+        <button class="auth-overlay-close" id="login-close" type="button" aria-label="Continuar sin iniciar sesión">×</button>
         <div class="auth-brand" aria-hidden="true">🌿</div>
-        <span class="section-kicker">ACCESO LOCAL</span>
+        <span class="section-kicker">ACCESO PROTEGIDO</span>
         <h2 id="login-title">Módulo Hongos</h2>
-        <p>Inicia sesión para consultar el monitoreo. Los administradores también pueden operar el simulador y los relés.</p>
+        <p>El monitoreo es público. Inicia sesión para ver la galería completa o descargar datos; los administradores también pueden operar el simulador y los relés.</p>
+        <p class="login-context" id="login-context" hidden></p>
         <form class="login-form" id="login-form">
           <label for="login-username">Usuario</label>
           <input id="login-username" name="username" type="text" autocomplete="username" maxlength="64" required />
@@ -312,6 +314,7 @@
           <p class="login-error" id="login-error" role="alert" hidden></p>
           <button class="login-submit" id="login-submit" type="submit">Iniciar sesión</button>
         </form>
+        <button class="auth-continue" id="login-continue" type="button">Continuar sin iniciar sesión</button>
         <p class="auth-help">Las credenciales se crean con el seed y nunca se muestran en esta página.</p>
       </section>
     </div>

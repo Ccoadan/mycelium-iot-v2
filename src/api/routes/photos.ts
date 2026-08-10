@@ -1,4 +1,4 @@
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { z } from 'zod';
 
 import type { RequestAuthentication } from '../../services/auth/cookie-authentication.js';
@@ -19,8 +19,15 @@ export function createPhotoRoutes(dependencies: PhotoRouteDependencies): Hono {
   const routes = new Hono();
 
   routes.get('/latest', async (context) => {
-    await dependencies.authentication.requireUser(context);
     return context.json(await dependencies.service.getLatest(), 200, { 'Cache-Control': 'no-store' });
+  });
+
+  routes.get('/latest/content', async (context) => {
+    try {
+      return photoContentResponse(await dependencies.service.getLatestContent(), 'no-store');
+    } catch (error) {
+      return photoError(context, error);
+    }
   });
 
   routes.get('/', async (context) => {
@@ -44,24 +51,35 @@ export function createPhotoRoutes(dependencies: PhotoRouteDependencies): Hono {
     }
     try {
       const content = await dependencies.service.getContent(parsedId.data);
-      const filename = content.filename.replace(/["\\\r\n]/g, '_');
-      return new Response(Uint8Array.from(content.bytes).buffer, {
-        status: 200,
-        headers: {
-          'Cache-Control': 'private, max-age=3600',
-          'Content-Disposition': `inline; filename="${filename}"`,
-          'Content-Length': String(content.bytes.byteLength),
-          'Content-Type': content.contentType,
-          'X-Content-Type-Options': 'nosniff',
-        },
-      });
+      return photoContentResponse(content, 'private, no-store');
     } catch (error) {
-      if (error instanceof PhotoNotFoundError) {
-        return context.json({ error: { code: 'PHOTO_NOT_FOUND', message: error.message } }, 404);
-      }
-      throw error;
+      return photoError(context, error);
     }
   });
 
   return routes;
+}
+
+function photoContentResponse(
+  content: Awaited<ReturnType<PhotoService['getContent']>>,
+  cacheControl: string,
+): Response {
+  const filename = content.filename.replace(/["\\\r\n]/g, '_');
+  return new Response(Uint8Array.from(content.bytes).buffer, {
+    status: 200,
+    headers: {
+      'Cache-Control': cacheControl,
+      'Content-Disposition': `inline; filename="${filename}"`,
+      'Content-Length': String(content.bytes.byteLength),
+      'Content-Type': content.contentType,
+      'X-Content-Type-Options': 'nosniff',
+    },
+  });
+}
+
+function photoError(context: Context, error: unknown): Response | Promise<Response> {
+  if (error instanceof PhotoNotFoundError) {
+    return context.json({ error: { code: 'PHOTO_NOT_FOUND', message: error.message } }, 404);
+  }
+  throw error;
 }

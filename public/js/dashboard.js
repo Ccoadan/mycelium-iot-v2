@@ -49,6 +49,7 @@ const state = {
   photoTotalPages: 0,
   photoTotal: 0,
   photoLoading: false,
+  latestPhotoLoading: false,
   latestPhoto: null,
   photos: [],
   refreshing: false,
@@ -65,7 +66,8 @@ const elements = Object.fromEntries(
     'bag-name', 'bag-species', 'bag-select', 'bag-image', 'bag-image-bg', 'bag-badge', 'bag-chart-title',
     'bag-chart', 'bag-temperature', 'bag-humidity', 'control-role-chip', 'control-context',
     'control-updated-at', 'control-updated-by', 'auth-user', 'auth-username', 'auth-role', 'auth-toggle',
-    'auth-overlay', 'login-form', 'login-username', 'login-password', 'login-error', 'login-submit',
+    'auth-overlay', 'login-form', 'login-username', 'login-password', 'login-context', 'login-error', 'login-submit',
+    'login-close', 'login-continue',
     'history-filters', 'history-from', 'history-to', 'history-type', 'history-sensor', 'history-bag',
     'history-apply', 'history-export', 'history-count', 'history-range', 'history-table-body',
     'history-prev', 'history-next', 'history-page', 'toast-wrap',
@@ -117,54 +119,51 @@ function renderAuthentication() {
   elements['auth-role'].textContent = state.user?.role === 'admin' ? 'Administrador' : 'Solo lectura';
   elements['auth-toggle'].textContent = authenticated ? 'Cerrar sesión' : 'Iniciar sesión';
   elements['simulation-toggle'].disabled = state.user?.role !== 'admin';
-  elements['history-apply'].disabled = !authenticated;
-  elements['history-export'].disabled = !authenticated;
+  elements['history-apply'].disabled = state.historyLoading;
+  elements['history-export'].disabled = state.historyLoading;
+  elements['history-export'].title = authenticated ? 'Descargar mediciones en CSV' : 'Inicia sesión para descargar datos';
   if (!authenticated) {
     elements['gallery-prev'].disabled = true;
     elements['gallery-next'].disabled = true;
-    elements['latest-photo-open'].disabled = true;
   }
 }
 
-function showLogin(message = '') {
+function showLogin(contextMessage = '') {
   elements['auth-overlay'].hidden = false;
-  elements['login-error'].hidden = !message;
-  elements['login-error'].textContent = message;
+  elements['login-context'].hidden = !contextMessage;
+  elements['login-context'].textContent = contextMessage;
+  elements['login-error'].hidden = true;
+  elements['login-error'].textContent = '';
   setTimeout(() => elements['login-username'].focus(), 0);
 }
 
 function hideLogin() {
   elements['auth-overlay'].hidden = true;
+  elements['login-context'].hidden = true;
+  elements['login-context'].textContent = '';
   elements['login-error'].hidden = true;
   elements['login-error'].textContent = '';
+  elements['login-password'].value = '';
 }
 
-function clearProtectedState() {
+function clearAuthenticatedState() {
   state.user = null;
   state.control = null;
-  state.latest = [];
-  state.summary = { configured: 21, active: 21, reporting: 0, stale: 0 };
-  state.simulatorRunning = false;
-  state.latestPhoto = null;
   state.photos = [];
   state.photoPage = 1;
   state.photoTotalPages = 0;
   state.photoTotal = 0;
   state.photoLoading = false;
-  setHistoryBusy(false);
   renderAuthentication();
   renderControl();
-  renderLatest();
-  renderHistory();
-  renderPhotos();
+  renderGallery();
   closePhotoDialog();
-  drawLineChart(elements['ambient-chart'], []);
-  drawLineChart(elements['bag-chart'], []);
 }
 
 function handleSessionExpired(message = 'La sesión terminó. Inicia sesión nuevamente.') {
-  clearProtectedState();
+  clearAuthenticatedState();
   showLogin(message);
+  void refreshControl();
 }
 
 async function refreshSession() {
@@ -175,8 +174,9 @@ async function refreshSession() {
     hideLogin();
     return true;
   } catch (error) {
-    clearProtectedState();
-    showLogin(error.status === 401 ? '' : 'No fue posible contactar la API local.');
+    clearAuthenticatedState();
+    hideLogin();
+    if (error.status !== 401) toast('No fue posible comprobar la sesión. El monitoreo público sigue disponible.', true);
     return false;
   }
 }
@@ -195,11 +195,10 @@ async function submitLogin(event) {
       body: JSON.stringify({ username, password }),
     });
     state.user = payload.user;
-    elements['login-password'].value = '';
     renderAuthentication();
     hideLogin();
     await refreshAll();
-    await Promise.all([refreshAmbientChart(), refreshBagChart(), refreshHistory(1), refreshPhotos(1)]);
+    await refreshGallery(1);
     toast(`Sesión iniciada · ${payload.user.username}`);
   } catch (error) {
     elements['login-password'].value = '';
@@ -215,9 +214,13 @@ async function submitLogin(event) {
 async function logout() {
   try {
     await requestJson('/api/auth/logout', { method: 'POST' });
-    handleSessionExpired('Sesión cerrada correctamente.');
+    clearAuthenticatedState();
+    hideLogin();
+    await refreshControl();
+    toast('Sesión cerrada correctamente. El monitoreo continúa en modo público.');
   } catch (error) {
-    toast(error.message, true);
+    if (error.status === 401) handleSessionExpired();
+    else toast(error.message, true);
   }
 }
 
@@ -289,8 +292,8 @@ function buildHistoryParameters(includePagination = true) {
 
 function setHistoryBusy(busy) {
   state.historyLoading = busy;
-  elements['history-apply'].disabled = busy || !state.user;
-  elements['history-export'].disabled = busy || !state.user;
+  elements['history-apply'].disabled = busy;
+  elements['history-export'].disabled = busy;
   if (busy) {
     elements['history-count'].textContent = 'Consultando historial…';
     elements['history-prev'].disabled = true;
@@ -298,7 +301,7 @@ function setHistoryBusy(busy) {
   }
 }
 
-function renderHistory(payload = null, emptyMessage = 'Inicia sesión para consultar el historial.') {
+function renderHistory(payload = null, emptyMessage = 'Esperando la primera consulta pública.') {
   const body = elements['history-table-body'];
   body.replaceChildren();
   if (!payload || payload.measurements.length === 0) {
@@ -346,14 +349,13 @@ function renderHistory(payload = null, emptyMessage = 'Inicia sesión para consu
 }
 
 async function refreshHistory(page = 1) {
-  if (!state.user) return;
   state.historyPage = page;
   setHistoryBusy(true);
   try {
     const payload = await requestJson(`/api/measurements/history?${buildHistoryParameters()}`);
     renderHistory(payload);
   } catch (error) {
-    if (error.status === 401) {
+    if (error.status === 401 && state.user) {
       handleSessionExpired();
       return;
     }
@@ -361,14 +363,17 @@ async function refreshHistory(page = 1) {
     toast(error.message, true);
   } finally {
     setHistoryBusy(false);
-    elements['history-prev'].disabled = !state.user || state.historyPage <= 1;
+    elements['history-prev'].disabled = state.historyPage <= 1;
     elements['history-next'].disabled =
-      !state.user || state.historyTotalPages === 0 || state.historyPage >= state.historyTotalPages;
+      state.historyTotalPages === 0 || state.historyPage >= state.historyTotalPages;
   }
 }
 
 async function downloadHistoryCsv() {
-  if (!state.user) return;
+  if (!state.user) {
+    showLogin('Inicia sesión para descargar las mediciones en formato CSV.');
+    return;
+  }
   const button = elements['history-export'];
   button.disabled = true;
   button.textContent = 'Preparando…';
@@ -401,7 +406,7 @@ async function downloadHistoryCsv() {
     if (error.status === 401) handleSessionExpired();
     else toast(error.message, true);
   } finally {
-    button.disabled = !state.user;
+    button.disabled = false;
     button.textContent = 'Descargar CSV';
   }
 }
@@ -440,7 +445,7 @@ function formatFileSize(sizeBytes) {
   return `${Math.max(1, Math.round(sizeBytes / 1024)).toLocaleString('es-PE')} KB`;
 }
 
-function renderPhotos(emptyMessage = '') {
+function renderLatestPhoto(emptyMessage = '') {
   const latest = state.latestPhoto;
   const latestImage = elements['latest-photo-image'];
   const latestEmpty = elements['latest-photo-empty'];
@@ -449,7 +454,7 @@ function renderPhotos(emptyMessage = '') {
     latestImage.alt = `Última captura del módulo, ${formatTimestamp(latest.capturedAt, true)}`;
     latestImage.hidden = false;
     latestEmpty.hidden = true;
-    elements['latest-photo-open'].disabled = state.photoLoading || !state.user;
+    elements['latest-photo-open'].disabled = state.latestPhotoLoading;
     elements['latest-photo-date'].textContent = formatTimestamp(latest.capturedAt, true);
     elements['latest-photo-source'].textContent = photoSourceLabel(latest.source);
   } else {
@@ -457,23 +462,44 @@ function renderPhotos(emptyMessage = '') {
     latestImage.alt = '';
     latestImage.hidden = true;
     latestEmpty.hidden = false;
-    latestEmpty.querySelector('strong').textContent = state.photoLoading ? 'Consultando cámara' : 'Sin fotografías';
-    latestEmpty.querySelector('small').textContent = emptyMessage || (state.user
-      ? 'Todavía no hay capturas publicadas'
-      : 'Inicia sesión para consultar la cámara');
+    latestEmpty.querySelector('strong').textContent = state.latestPhotoLoading ? 'Consultando cámara' : 'Sin fotografías';
+    latestEmpty.querySelector('small').textContent = emptyMessage || 'Todavía no hay capturas publicadas';
     elements['latest-photo-open'].disabled = true;
     elements['latest-photo-date'].textContent = 'Sin fotografía';
     elements['latest-photo-source'].textContent = '—';
   }
+}
 
+function renderGallery(emptyMessage = '') {
   const gallery = elements['photo-gallery'];
   gallery.replaceChildren();
+
+  if (!state.user) {
+    const locked = document.createElement('div');
+    locked.className = 'gallery-empty gallery-auth';
+    const title = document.createElement('strong');
+    title.textContent = 'Galería completa protegida';
+    const copy = document.createElement('span');
+    copy.textContent = 'Inicia sesión como viewer o administrador para consultar todas las fotografías.';
+    const login = document.createElement('button');
+    login.type = 'button';
+    login.textContent = 'Iniciar sesión';
+    login.addEventListener('click', () => showLogin('Inicia sesión para ver la galería completa.'));
+    locked.append(title, copy, login);
+    gallery.append(locked);
+    elements['gallery-count'].textContent = 'Acceso requerido';
+    elements['gallery-page'].textContent = 'Sesión requerida';
+    elements['gallery-prev'].disabled = true;
+    elements['gallery-next'].disabled = true;
+    return;
+  }
+
   if (!state.photos.length) {
     const message = document.createElement('div');
     message.className = 'gallery-empty';
     message.textContent = state.photoLoading
       ? 'Consultando fotografías…'
-      : emptyMessage || (state.user ? 'No existen fotografías publicadas.' : 'Inicia sesión para consultar las fotografías.');
+      : emptyMessage || 'No existen fotografías publicadas.';
     gallery.append(message);
   } else {
     state.photos.forEach((photo) => {
@@ -501,28 +527,40 @@ function renderPhotos(emptyMessage = '') {
     });
   }
 
-  elements['gallery-count'].textContent = state.user
-    ? `${state.photoTotal.toLocaleString('es-PE')} fotografías`
-    : 'Acceso requerido';
+  elements['gallery-count'].textContent = `${state.photoTotal.toLocaleString('es-PE')} fotografías`;
   elements['gallery-page'].textContent = state.photoTotalPages
     ? `Página ${state.photoPage} de ${state.photoTotalPages}`
     : 'Sin páginas';
-  elements['gallery-prev'].disabled = state.photoLoading || !state.user || state.photoPage <= 1;
+  elements['gallery-prev'].disabled = state.photoLoading || state.photoPage <= 1;
   elements['gallery-next'].disabled =
-    state.photoLoading || !state.user || state.photoTotalPages === 0 || state.photoPage >= state.photoTotalPages;
+    state.photoLoading || state.photoTotalPages === 0 || state.photoPage >= state.photoTotalPages;
 }
 
-async function refreshPhotos(page = 1) {
+async function refreshLatestPhoto() {
+  if (state.latestPhotoLoading) return;
+  state.latestPhotoLoading = true;
+  renderLatestPhoto();
+  let emptyMessage = '';
+  try {
+    const latest = await requestJson('/api/photos/latest');
+    state.latestPhoto = latest.photo;
+  } catch (error) {
+    state.latestPhoto = null;
+    emptyMessage = error.message;
+  } finally {
+    state.latestPhotoLoading = false;
+    renderLatestPhoto(emptyMessage);
+  }
+}
+
+async function refreshGallery(page = 1) {
   if (!state.user || state.photoLoading) return;
   state.photoLoading = true;
   state.photoPage = page;
-  renderPhotos();
+  renderGallery();
+  let emptyMessage = '';
   try {
-    const [latest, gallery] = await Promise.all([
-      requestJson('/api/photos/latest'),
-      requestJson(`/api/photos?page=${page}&pageSize=${PHOTO_PAGE_SIZE}`),
-    ]);
-    state.latestPhoto = latest.photo;
+    const gallery = await requestJson(`/api/photos?page=${page}&pageSize=${PHOTO_PAGE_SIZE}`);
     state.photos = gallery.photos;
     state.photoPage = gallery.pagination.page;
     state.photoTotal = gallery.pagination.total;
@@ -532,15 +570,14 @@ async function refreshPhotos(page = 1) {
       handleSessionExpired();
       return;
     }
-    state.latestPhoto = null;
     state.photos = [];
     state.photoTotal = 0;
     state.photoTotalPages = 0;
+    emptyMessage = error.message;
     toast(error.message, true);
-    renderPhotos(error.message);
   } finally {
     state.photoLoading = false;
-    renderPhotos();
+    renderGallery(emptyMessage);
   }
 }
 
@@ -616,16 +653,16 @@ async function refreshControl() {
 function renderControl() {
   const control = state.control;
   const actor = control?.actor;
-  const canModify = control?.permissions?.canModify === true;
+  const canModify = state.user?.role === 'admin' && control?.permissions?.canModify === true;
 
   elements['control-role-chip'].className = `phase-chip ${canModify ? 'is-admin' : 'is-viewer'}`;
   elements['control-role-chip'].textContent = !state.user
-    ? 'Acceso requerido'
+    ? 'Público · Solo lectura'
     : actor
     ? `${actor.role === 'admin' ? 'Administrador' : 'Solo lectura'} · ${actor.username}`
     : 'Sin identidad';
   elements['control-context'].textContent = !state.user
-    ? 'Inicia sesión para consultar el estado de los relés.'
+    ? 'El estado de los relés es público. Inicia sesión como administrador para modificarlos.'
     : canModify
     ? 'Control simulado habilitado. Cada cambio se guarda en MongoDB y deja una traza de auditoría.'
     : 'El estado es visible, pero este rol no puede modificar relés.';
@@ -647,7 +684,7 @@ function renderControl() {
   elements['control-updated-at'].textContent = control?.updatedAt
     ? `Actualizado ${formatTimestamp(control.updatedAt, true)}`
     : 'Sin cambios registrados';
-  elements['control-updated-by'].textContent = control?.updatedBy ? `Por ${control.updatedBy}` : 'MongoDB';
+  elements['control-updated-by'].textContent = state.user && control?.updatedBy ? `Por ${control.updatedBy}` : 'MongoDB';
 }
 
 function renderLatest() {
@@ -779,7 +816,6 @@ function renderSelectedBag() {
 }
 
 async function refreshAmbientChart() {
-  if (!state.user) return;
   const requestId = ++state.ambientRequest;
   const config = AMBIENT_TYPES[state.ambientType];
   try {
@@ -795,7 +831,6 @@ async function refreshAmbientChart() {
 }
 
 async function refreshBagChart() {
-  if (!state.user) return;
   const requestId = ++state.bagRequest;
   const bag = state.selectedBag;
   try {
@@ -919,7 +954,8 @@ async function toggleSimulation() {
     await refreshAll();
     await Promise.all([refreshAmbientChart(), refreshBagChart()]);
   } catch (error) {
-    toast(error.message, true);
+    if (error.status === 401) handleSessionExpired();
+    else toast(error.message, true);
   } finally {
     button.disabled = state.user?.role !== 'admin';
   }
@@ -927,7 +963,7 @@ async function toggleSimulation() {
 
 async function toggleRelay(relayKey, enabled) {
   const relay = state.control?.relays.find(({ key }) => key === relayKey);
-  if (!relay || !state.control?.permissions?.canModify) {
+  if (state.user?.role !== 'admin' || !relay || !state.control?.permissions?.canModify) {
     toast('Tu rol no puede modificar los relés', true);
     renderControl();
     return;
@@ -947,7 +983,8 @@ async function toggleRelay(relayKey, enabled) {
     toast(`${relay.name} · ${enabled ? 'encendido' : 'apagado'}`);
   } catch (error) {
     relay.enabled = previousEnabled;
-    toast(error.message, true);
+    if (error.status === 401) handleSessionExpired();
+    else toast(error.message, true);
   } finally {
     state.controlBusy.delete(relayKey);
     renderControl();
@@ -955,7 +992,6 @@ async function toggleRelay(relayKey, enabled) {
 }
 
 async function refreshAll() {
-  if (!state.user) return;
   if (state.refreshing) return;
   state.refreshing = true;
   try {
@@ -963,7 +999,7 @@ async function refreshAll() {
     const authenticationFailure = results.find(
       ({ status, reason }) => status === 'rejected' && reason?.status === 401,
     );
-    if (authenticationFailure) {
+    if (authenticationFailure && state.user) {
       handleSessionExpired();
       return;
     }
@@ -1004,6 +1040,14 @@ function bindEvents() {
     if (state.user) void logout();
     else showLogin();
   });
+  elements['login-close'].addEventListener('click', hideLogin);
+  elements['login-continue'].addEventListener('click', hideLogin);
+  elements['auth-overlay'].addEventListener('click', (event) => {
+    if (event.target === elements['auth-overlay']) hideLogin();
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && !elements['auth-overlay'].hidden) hideLogin();
+  });
   elements['login-form'].addEventListener('submit', (event) => void submitLogin(event));
   elements['history-filters'].addEventListener('submit', (event) => {
     event.preventDefault();
@@ -1012,11 +1056,16 @@ function bindEvents() {
   elements['history-export'].addEventListener('click', () => void downloadHistoryCsv());
   elements['history-prev'].addEventListener('click', () => void refreshHistory(state.historyPage - 1));
   elements['history-next'].addEventListener('click', () => void refreshHistory(state.historyPage + 1));
-  elements['gallery-prev'].addEventListener('click', () => void refreshPhotos(state.photoPage - 1));
-  elements['gallery-next'].addEventListener('click', () => void refreshPhotos(state.photoPage + 1));
+  elements['gallery-prev'].addEventListener('click', () => void refreshGallery(state.photoPage - 1));
+  elements['gallery-next'].addEventListener('click', () => void refreshGallery(state.photoPage + 1));
   elements['latest-photo-open'].addEventListener('click', () => openPhoto(state.latestPhoto));
   elements['camera-gallery-link'].addEventListener('click', () => {
+    if (!state.user) {
+      showLogin('Inicia sesión para ver la galería completa.');
+      return;
+    }
     elements['photo-gallery-section'].scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (!state.photos.length) void refreshGallery(1);
   });
   elements['photo-dialog-close'].addEventListener('click', closePhotoDialog);
   elements['photo-dialog'].addEventListener('click', (event) => {
@@ -1037,23 +1086,31 @@ async function initialize() {
   renderAuthentication();
   renderControl();
   renderHistory();
-  renderPhotos();
+  renderLatestPhoto();
+  renderGallery();
   renderSensorGrid();
   renderSelectedBag();
   drawLineChart(elements['ambient-chart'], []);
   drawLineChart(elements['bag-chart'], []);
-  const authenticated = await refreshSession();
-  if (authenticated) {
-    await refreshAll();
-    await Promise.all([refreshAmbientChart(), refreshBagChart(), refreshHistory(1), refreshPhotos(1)]);
-  }
+  await refreshSession();
+  await refreshAll();
+  await Promise.all([
+    refreshAmbientChart(),
+    refreshBagChart(),
+    refreshHistory(1),
+    refreshLatestPhoto(),
+    state.user ? refreshGallery(1) : Promise.resolve(),
+  ]);
   setInterval(updateClock, 1_000);
   setInterval(() => void refreshAll(), REFRESH_INTERVAL_MS);
   setInterval(() => {
     void refreshAmbientChart();
     void refreshBagChart();
   }, HISTORY_REFRESH_MS);
-  setInterval(() => void refreshPhotos(state.photoPage), PHOTO_REFRESH_MS);
+  setInterval(() => {
+    void refreshLatestPhoto();
+    if (state.user) void refreshGallery(state.photoPage);
+  }, PHOTO_REFRESH_MS);
 }
 
 void initialize();

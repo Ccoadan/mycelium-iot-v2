@@ -27,7 +27,9 @@ export class PhotoService {
 
   public async getLatest(): Promise<{ photo: PhotoView | null }> {
     const photo = await this.repository.getLatest();
-    return { photo: photo ? toPhotoView(photo) : null };
+    return {
+      photo: photo ? { ...toPhotoView(photo), imageUrl: '/api/photos/latest/content' } : null,
+    };
   }
 
   public async getGallery(page: number, pageSize: number): Promise<{
@@ -53,6 +55,24 @@ export class PhotoService {
   }> {
     const photo = await this.repository.getById(id);
     if (!photo) throw new PhotoNotFoundError();
+    return this.readContent(photo);
+  }
+
+  public async getLatestContent(): Promise<{
+    bytes: Uint8Array;
+    contentType: 'image/jpeg';
+    filename: string;
+  }> {
+    const photo = await this.repository.getLatest();
+    if (!photo) throw new PhotoNotFoundError();
+    return this.readContent(photo);
+  }
+
+  private async readContent(photo: Photo): Promise<{
+    bytes: Uint8Array;
+    contentType: 'image/jpeg';
+    filename: string;
+  }> {
     const content = await this.storage.read(photo.storageKey);
     if (!content) throw new PhotoNotFoundError('El archivo de la fotografía no está disponible');
     return { ...content, filename: photo.filename };

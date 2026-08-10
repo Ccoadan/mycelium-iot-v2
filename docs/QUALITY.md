@@ -10,6 +10,7 @@ Esta fase revisa transversalmente las Fases 1 a 8 sin cambiar la identidad visua
 | Tamaño HTTP | Máximo global de 16 KiB en cuerpos dirigidos a `/api/*`; también valida cuerpos sin `Content-Length` | `http-quality.test.ts` |
 | Autenticación | Bloqueo temporal por nombre de usuario tras fallos repetidos; respuesta 429 con `Retry-After` | `auth.integration.test.ts`, `login-attempt-limiter.test.ts` |
 | Autorización | Se autoriza al actor antes de revelar si el relé o el cuerpo son válidos | `control.integration.test.ts` |
+| Acceso público | Mediciones, historial, estado de relés y última foto son públicos; galería histórica y CSV conservan autenticación | `auth.integration.test.ts`, `measurements.integration.test.ts`, `photos.integration.test.ts`, `export.integration.test.ts` |
 | Sesión | JWT de esquema estricto, cookie `HttpOnly`, revocación persistida y validación adicional de solicitudes modificadoras | `auth.integration.test.ts` |
 | Navegador | CSP, `X-Frame-Options: DENY`, permisos de cámara/micrófono/geolocalización deshabilitados y HSTS solo en producción | `http-quality.test.ts` |
 | Privacidad | Las respuestas API usan `Cache-Control: no-store`, salvo políticas privadas más específicas | `http-quality.test.ts`, `photos.integration.test.ts` |
@@ -45,6 +46,7 @@ La política CSP permite los recursos propios y únicamente las hojas de estilo/
 
 - El limitador de login vive en memoria y protege esta instancia local. Una futura ejecución distribuida deberá mover su estado a una capa compartida.
 - HSTS se envía solo con `APP_ENV=production`; en HTTP local se omite deliberadamente.
-- MongoDB y los JPEG siguen siendo locales. La migración a servicios Cloudflare corresponde a la Fase 10.
+- MongoDB y los JPEG se conservan en volúmenes persistentes de la VPS. Un almacenamiento de objetos externo queda como mejora futura si aumenta el volumen.
+- El historial público limita cada respuesta a 500 filas y la paginación a 1 000 páginas. Una exposición de mayor escala deberá añadir limitación de frecuencia en el proxy.
 - No se conecta el ESP32 ni la ESP32-CAM original y todavía no se generan capturas automáticas cada dos horas.
 - Los endpoints administrativos no sustituyen TLS. En producción deben exponerse exclusivamente mediante HTTPS y secretos propios del entorno.

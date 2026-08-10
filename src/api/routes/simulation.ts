@@ -2,7 +2,6 @@ import { Hono, type Context } from 'hono';
 import { z } from 'zod';
 
 import { readJsonBody } from '../http/read-json-body.js';
-import type { AuditActor } from '../../models/index.js';
 import type { RequestAuthentication } from '../../services/auth/cookie-authentication.js';
 import {
   SIMULATION_INTERVAL_LIMITS,
@@ -20,19 +19,18 @@ const intervalSchema = z.object({
 export interface SimulationRouteDependencies {
   service: SimulationService;
   controlEnabled: boolean;
-  authentication?: RequestAuthentication;
+  authentication: RequestAuthentication;
 }
 
 export function createSimulationRoutes(dependencies: SimulationRouteDependencies): Hono {
   const routes = new Hono();
   routes.get('/', async (context) => {
-    await dependencies.authentication?.requireUser(context);
     return context.json({ simulation: dependencies.service.getStatus() });
   });
 
   routes.post('/start', async (context) => {
-    const actor = await requireAdminActor(context, dependencies.authentication);
-    dependencies.authentication?.requireDashboardRequest(context);
+    const actor = await dependencies.authentication.requireAdmin(context);
+    dependencies.authentication.requireDashboardRequest(context);
     if (!dependencies.controlEnabled) {
       return controlDisabled(context);
     }
@@ -41,8 +39,8 @@ export function createSimulationRoutes(dependencies: SimulationRouteDependencies
   });
 
   routes.post('/stop', async (context) => {
-    const actor = await requireAdminActor(context, dependencies.authentication);
-    dependencies.authentication?.requireDashboardRequest(context);
+    const actor = await dependencies.authentication.requireAdmin(context);
+    dependencies.authentication.requireDashboardRequest(context);
     if (!dependencies.controlEnabled) {
       return controlDisabled(context);
     }
@@ -51,8 +49,8 @@ export function createSimulationRoutes(dependencies: SimulationRouteDependencies
   });
 
   routes.post('/run-once', async (context) => {
-    const actor = await requireAdminActor(context, dependencies.authentication);
-    dependencies.authentication?.requireDashboardRequest(context);
+    const actor = await dependencies.authentication.requireAdmin(context);
+    dependencies.authentication.requireDashboardRequest(context);
     if (!dependencies.controlEnabled) {
       return controlDisabled(context);
     }
@@ -61,8 +59,8 @@ export function createSimulationRoutes(dependencies: SimulationRouteDependencies
   });
 
   routes.patch('/config', async (context) => {
-    const actor = await requireAdminActor(context, dependencies.authentication);
-    dependencies.authentication?.requireDashboardRequest(context);
+    const actor = await dependencies.authentication.requireAdmin(context);
+    dependencies.authentication.requireDashboardRequest(context);
     if (!dependencies.controlEnabled) {
       return controlDisabled(context);
     }
@@ -86,13 +84,6 @@ export function createSimulationRoutes(dependencies: SimulationRouteDependencies
   });
 
   return routes;
-}
-
-async function requireAdminActor(
-  context: Context,
-  authentication?: RequestAuthentication,
-): Promise<AuditActor> {
-  return authentication ? authentication.requireAdmin(context) : { username: 'local-api', role: 'admin' };
 }
 
 function controlDisabled(context: Context): Response | Promise<Response> {

@@ -27,6 +27,7 @@ const viewer: AuthenticatedUser = {
 
 function authenticationFor(user: AuthenticatedUser | null): RequestAuthentication {
   return {
+    optionalUser: async () => user,
     requireUser: async () => {
       if (!user) throw new AuthenticationRequiredError('Debe iniciar sesión');
       return user;
@@ -39,7 +40,7 @@ function authenticationFor(user: AuthenticatedUser | null): RequestAuthenticatio
   };
 }
 
-describe('API protegida de fotografías', () => {
+describe('API pública y protegida de fotografías', () => {
   let mongodb: MongoMemoryServer;
   let connection: MongoConnection;
   let storageRoot: string;
@@ -105,20 +106,28 @@ describe('API protegida de fotografías', () => {
     });
   }
 
-  it('devuelve última captura, galería paginada y el JPEG sin filtrar la ruta local', async () => {
-    const app = appFor(viewer);
-    const latest = await app.request('/api/photos/latest');
+  it('publica únicamente la última captura y protege la galería histórica', async () => {
+    const anonymous = appFor(null);
+    const latest = await anonymous.request('/api/photos/latest');
     expect(latest.status).toBe(200);
     expect(await latest.json()).toMatchObject({
       photo: {
         id: newestId.toHexString(),
         filename: 'newest.jpg',
+        imageUrl: '/api/photos/latest/content',
         source: 'historical',
         capturedAt: '2026-08-01T10:00:00.000Z',
         metadata: { width: 1600, height: 1200 },
       },
     });
 
+    const latestContent = await anonymous.request('/api/photos/latest/content');
+    expect(latestContent.status).toBe(200);
+    expect(latestContent.headers.get('content-type')).toBe('image/jpeg');
+    expect(latestContent.headers.get('cache-control')).toBe('no-store');
+    expect(new Uint8Array(await latestContent.arrayBuffer())).toEqual(jpeg);
+
+    const app = appFor(viewer);
     const gallery = await app.request('/api/photos?page=1&pageSize=1');
     expect(gallery.status).toBe(200);
     const galleryPayload = await gallery.json();
@@ -131,12 +140,13 @@ describe('API protegida de fotografías', () => {
     const content = await app.request(`/api/photos/${newestId.toHexString()}/content`);
     expect(content.status).toBe(200);
     expect(content.headers.get('content-type')).toBe('image/jpeg');
-    expect(content.headers.get('cache-control')).toContain('private');
+    expect(content.headers.get('cache-control')).toBe('private, no-store');
     expect(new Uint8Array(await content.arrayBuffer())).toEqual(jpeg);
   });
 
-  it('exige sesión y responde 404 para identificadores o archivos inexistentes', async () => {
+  it('exige sesión para la galería y responde 404 para identificadores o archivos inexistentes', async () => {
     const anonymous = appFor(null);
+    expect((await anonymous.request('/api/photos/latest')).status).toBe(200);
     expect((await anonymous.request('/api/photos')).status).toBe(401);
     expect((await anonymous.request(`/api/photos/${newestId.toHexString()}/content`)).status).toBe(401);
 

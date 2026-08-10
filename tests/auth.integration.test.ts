@@ -149,6 +149,12 @@ describe('autenticación y autorización', () => {
     const revoked = await app.request('/api/auth/me', { headers: { Cookie: cookie } });
     expect(revoked.status).toBe(401);
 
+    const publicControl = await app.request('/api/control', { headers: { Cookie: cookie } });
+    expect(publicControl.status).toBe(200);
+    expect(await publicControl.json()).toMatchObject({
+      control: { actor: null, permissions: { canModify: false }, updatedBy: 'Identidad protegida' },
+    });
+
     const database = await connection.getDatabase();
     expect(await database.collection<AuditLog>(COLLECTIONS.auditLogs).countDocuments({ action: 'auth.login' })).toBe(1);
     expect(await database.collection<AuditLog>(COLLECTIONS.auditLogs).countDocuments({ action: 'auth.logout' })).toBe(1);
@@ -187,10 +193,20 @@ describe('autenticación y autorización', () => {
     expect(await update.json()).toMatchObject({ error: { code: 'FORBIDDEN' } });
   });
 
-  it('exige sesión para las rutas protegidas', async () => {
+  it('publica el estado de control y exige admin para modificarlo', async () => {
     const response = await app.request('/api/control');
-    expect(response.status).toBe(401);
-    expect(await response.json()).toMatchObject({ error: { code: 'AUTHENTICATION_REQUIRED' } });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      control: { actor: null, permissions: { canModify: false }, updatedBy: 'Identidad protegida' },
+    });
+
+    const update = await app.request('/api/control/relay1', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': DASHBOARD_REQUEST_HEADER },
+      body: JSON.stringify({ enabled: true }),
+    });
+    expect(update.status).toBe(401);
+    expect(await update.json()).toMatchObject({ error: { code: 'AUTHENTICATION_REQUIRED' } });
   });
 
   it('limita temporalmente los intentos de acceso fallidos', async () => {

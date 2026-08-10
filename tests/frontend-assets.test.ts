@@ -21,7 +21,7 @@ describe('dashboard estático', () => {
     expect(html).toContain('id="login-form"');
     expect(html).toContain('id="history-filters"');
     expect(html).toContain('id="history-table-body"');
-    expect(html).toContain('/js/dashboard.js?v=8');
+    expect(html).toContain('/js/dashboard.js?v=9');
     expect(javascript).toContain("const { headers: additionalHeaders = {}, ...requestOptions } = options;");
     expect(html).toContain('id="photo-gallery"');
     expect(html).toContain('id="latest-photo-image"');
@@ -32,6 +32,13 @@ describe('dashboard estático', () => {
     expect(html).toContain('Iluminación de cámara');
     expect(css).toContain('.ios-toggle input:checked + i');
     expect(css).toContain('.auth-overlay');
+    expect(html).toMatch(/id="auth-overlay"[^>]*hidden/);
+    expect(html).toContain('id="login-continue"');
+    expect(html).toContain('El monitoreo es público');
+    expect(javascript).toContain('async function refreshLatestPhoto()');
+    expect(javascript).toContain('async function refreshGallery(page = 1)');
+    expect(javascript).toContain("showLogin('Inicia sesión para descargar las mediciones en formato CSV.')");
+    expect(javascript).toContain("state.user?.role === 'admin'");
     expect(javascript).not.toMatch(/\.php\b/);
     expect(javascript).not.toContain('Humedad (ADC)');
     expect(css).toContain('--green: #34c759');

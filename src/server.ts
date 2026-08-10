@@ -62,7 +62,7 @@ const app = createApp({
     authentication,
     loginAttemptLimiter: new InMemoryLoginAttemptLimiter(config.auth.loginRateLimit),
   },
-  measurements: { service: measurementQueryService, authentication },
+  measurements: { service: measurementQueryService },
   simulation: {
     service: simulationService,
     controlEnabled: config.simulation.apiControlEnabled,

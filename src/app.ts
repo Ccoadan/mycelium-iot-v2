@@ -87,7 +87,7 @@ export function createApp(dependencies: AppDependencies): Hono {
     app.route('/api/measurements', createMeasurementRoutes(dependencies.measurements));
     app.route(
       '/api/sensors',
-      createSensorRoutes(dependencies.measurements.service, dependencies.measurements.authentication),
+      createSensorRoutes(dependencies.measurements.service),
     );
   }
   if (dependencies.control) {

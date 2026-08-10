@@ -2,7 +2,6 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 
 import { SENSOR_TYPES } from '../../models/index.js';
-import type { RequestAuthentication } from '../../services/auth/cookie-authentication.js';
 import {
   HistoryValidationError,
   type MeasurementQueryService,
@@ -15,27 +14,24 @@ const historyQuerySchema = z.object({
   from: z.string().datetime({ offset: true }).optional(),
   to: z.string().datetime({ offset: true }).optional(),
   hours: z.coerce.number().positive().max(8_784).optional(),
-  page: z.coerce.number().int().positive().max(100_000).default(1),
+  page: z.coerce.number().int().positive().max(1_000).default(1),
   pageSize: z.coerce.number().int().positive().max(500).optional(),
-  limit: z.coerce.number().int().positive().max(2_000).optional(),
+  limit: z.coerce.number().int().positive().max(500).optional(),
   sort: z.enum(['asc', 'desc']).default('desc'),
 });
 
 export interface MeasurementRouteDependencies {
   service: MeasurementQueryService;
-  authentication?: RequestAuthentication;
 }
 
 export function createMeasurementRoutes(dependencies: MeasurementRouteDependencies): Hono {
   const routes = new Hono();
 
   routes.get('/latest', async (context) => {
-    await dependencies.authentication?.requireUser(context);
     return context.json(await dependencies.service.getLatest());
   });
 
   routes.get('/history', async (context) => {
-    await dependencies.authentication?.requireUser(context);
     const parsed = historyQuerySchema.safeParse(context.req.query());
     if (!parsed.success) {
       return context.json(

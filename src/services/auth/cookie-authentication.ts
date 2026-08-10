@@ -17,6 +17,7 @@ export interface SessionCookieOptions {
 }
 
 export interface RequestAuthentication {
+  optionalUser(context: Context): Promise<AuthenticatedUser | null>;
   requireUser(context: Context): Promise<AuthenticatedUser>;
   requireAdmin(context: Context): Promise<AuthenticatedUser>;
   requireDashboardRequest(context: Context): void;

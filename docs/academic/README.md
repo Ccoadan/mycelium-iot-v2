@@ -11,6 +11,6 @@ Este directorio reúne las fuentes verificables del documento técnico. La colec
 | Scripts JMeter | `tests/load/` | Implementados; pendiente evidencia contra URL final |
 | Pipeline GitHub Actions | `.github/workflows/ci-cd.yml` | Validado en GitHub: primera ejecución aprobada |
 | Presentación, máximo 10 diapositivas | Se preparará con resultados finales | Pendiente |
-| Aplicación pública | `deploy/` y VPS | Preparada localmente; pendiente despliegue |
+| Aplicación pública | `deploy/` y VPS | Desplegada por HTTPS en <https://206-189-201-212.sslip.io> |
 
 Los reportes generados (`coverage/` y `reports/`) se conservan como artefactos de GitHub Actions. Las conclusiones verificadas se trasladan al documento técnico; no se versionan credenciales ni resultados que las contengan.

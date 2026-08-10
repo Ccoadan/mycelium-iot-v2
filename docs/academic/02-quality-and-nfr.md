@@ -6,7 +6,7 @@ Cada requisito tiene un criterio medible y un mecanismo de verificación.
 
 | Atributo | Requisitos relacionados |
 |---|---|
-| Seguridad | RNF-SEG-01 a RNF-SEG-07 |
+| Seguridad | RNF-SEG-01 a RNF-SEG-08 |
 | Rendimiento | RNF-REN-01 a RNF-REN-05 |
 | Disponibilidad | RNF-DIS-01 a RNF-DIS-04 |
 | Usabilidad | RNF-USA-01 a RNF-USA-04 |
@@ -26,6 +26,7 @@ Cada requisito tiene un criterio medible y un mecanismo de verificación.
 | RNF-SEG-05 | Un usuario `viewer` recibirá HTTP 403 en operaciones administrativas. | Vitest y Selenium |
 | RNF-SEG-06 | Los cuerpos de la API no superarán 16 KiB y las operaciones JSON rechazarán tipos incorrectos. | Prueba HTTP |
 | RNF-SEG-07 | Ningún secreto, respaldo, clave SSH ni archivo `.env` será versionado. | `.gitignore` y revisión CI |
+| RNF-SEG-08 | Las lecturas de monitoreo serán públicas; galería histórica y CSV exigirán sesión, y toda modificación exigirá rol `admin`. | Vitest y Selenium |
 | RNF-REN-01 | `/api/health` tendrá p95 menor de 500 ms durante la prueba JMeter de 10 usuarios. | Reporte JMeter |
 | RNF-REN-02 | Las consultas de últimas mediciones e historial tendrán p95 menor de 2 s con 10 usuarios concurrentes. | Reporte JMeter |
 | RNF-REN-03 | La tasa de errores bajo la carga académica será inferior a 1 %. | Reporte JMeter |
@@ -54,4 +55,4 @@ Cada requisito tiene un criterio medible y un mecanismo de verificación.
 | RNF-CON-02 | Reiniciar la aplicación conservará mediciones, relés, usuarios y fotografías. | Prueba de persistencia |
 | RNF-CON-03 | Cada modificación efectiva y acceso relevante generará auditoría con actor y timestamp. | Pruebas de integración |
 
-El catálogo contiene 34 requisitos y supera el mínimo académico de 20.
+El catálogo contiene 35 requisitos y supera el mínimo académico de 20.

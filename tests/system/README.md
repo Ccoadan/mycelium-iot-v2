@@ -1,9 +1,10 @@
 # Pruebas funcionales Selenium
 
-El script `selenium-dashboard.mjs` automatiza dos recorridos en Chrome:
+El script `selenium-dashboard.mjs` automatiza tres recorridos en Chrome:
 
-1. acceso administrativo, carga de nueve bolsas, historial y controles habilitados;
-2. acceso de solo lectura, con simulador y relés deshabilitados.
+1. acceso público al dashboard, historial, estado de relés y última fotografía, con las capacidades protegidas cerradas;
+2. acceso administrativo, carga de nueve bolsas, historial y controles habilitados;
+3. acceso de solo lectura, con galería y CSV disponibles, pero simulador y relés deshabilitados.
 
 La aplicación y MongoDB deben estar activos y tener ambos usuarios sembrados. Las credenciales se reciben únicamente mediante variables de entorno:
 

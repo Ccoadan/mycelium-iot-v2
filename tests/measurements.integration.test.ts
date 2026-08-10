@@ -92,6 +92,14 @@ describe('consultas del dashboard con MongoDB', () => {
     const latestResponse = await app.request('/api/measurements/latest');
     expect(latestResponse.status).toBe(200);
 
+    const sensorsResponse = await app.request('/api/sensors');
+    expect(sensorsResponse.status).toBe(200);
+    const sensorsPayload = await sensorsResponse.json();
+    expect(sensorsPayload).toMatchObject({ count: 21 });
+    expect(sensorsPayload.sensors[0]).not.toHaveProperty('_id');
+    expect(sensorsPayload.sensors[0]).not.toHaveProperty('createdAt');
+    expect(sensorsPayload.sensors[0]).not.toHaveProperty('updatedAt');
+
     const paginatedResponse = await app.request(
       '/api/measurements/history?from=2026-08-08T17:59:00.000Z&to=2026-08-08T18:01:00.000Z&page=1&pageSize=10&sort=desc',
     );
@@ -116,5 +124,8 @@ describe('consultas del dashboard con MongoDB', () => {
       '/api/measurements/history?type=co2_environment&bag=1',
     );
     expect(incompatibleFilters.status).toBe(400);
+
+    const excessivePage = await app.request('/api/measurements/history?hours=24&page=1001&pageSize=25');
+    expect(excessivePage.status).toBe(400);
   });
 });

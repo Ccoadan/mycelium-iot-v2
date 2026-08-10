@@ -189,7 +189,7 @@ a:focus-visible {
 }
 
 .btn-header:disabled {
-  cursor: wait;
+  cursor: not-allowed;
   opacity: 0.55;
 }
 
@@ -1347,6 +1347,37 @@ a:focus-visible {
   text-align: center;
 }
 
+.gallery-auth {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+
+.gallery-auth strong {
+  color: var(--text-soft);
+  font-size: 0.82rem;
+}
+
+.gallery-auth span {
+  max-width: 440px;
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+.gallery-auth button {
+  margin-top: 5px;
+  border: 1px solid rgb(52 199 89 / 24%);
+  border-radius: 8px;
+  background: var(--green-wash);
+  color: var(--green-dark);
+  padding: 8px 12px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .gallery-pagination {
   margin-top: 16px;
 }
@@ -1456,6 +1487,7 @@ a:focus-visible {
 }
 
 .auth-card {
+  position: relative;
   width: min(100%, 390px);
   border: 1px solid var(--border);
   border-radius: 22px;
@@ -1463,6 +1495,26 @@ a:focus-visible {
   box-shadow: 0 22px 70px rgb(0 0 0 / 14%);
   padding: 30px;
   animation: fade-up 300ms ease both;
+}
+
+.auth-overlay-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface-soft);
+  color: var(--muted);
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.auth-overlay-close:hover {
+  border-color: var(--border-strong);
+  color: var(--text-soft);
 }
 
 .auth-brand {
@@ -1477,11 +1529,21 @@ a:focus-visible {
   font-weight: 500;
 }
 
-.auth-card > p:not(.auth-help) {
+.auth-card > p:not(.auth-help):not(.login-context) {
   margin: 9px 0 22px;
   color: var(--muted);
   font-size: 0.79rem;
   line-height: 1.55;
+}
+
+.login-context {
+  margin: -10px 0 8px;
+  border-radius: 8px;
+  background: var(--green-wash);
+  color: var(--green-dark);
+  padding: 8px 10px;
+  font-size: 0.7rem;
+  line-height: 1.45;
 }
 
 .login-form {
@@ -1542,6 +1604,22 @@ a:focus-visible {
 .login-submit:disabled {
   cursor: wait;
   opacity: 0.62;
+}
+
+.auth-continue {
+  width: 100%;
+  margin-top: 10px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  padding: 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.auth-continue:hover {
+  color: var(--text-soft);
 }
 
 .auth-help {

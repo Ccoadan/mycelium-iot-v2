@@ -7,7 +7,7 @@
 | Unitarias | Motor del simulador, límites, JPEG, almacenamiento y fixtures | Aprobado |
 | Integración | MongoDB, autenticación, control, mediciones, fotos, exportación y seed | Aprobado |
 | Sistema | Aplicación completa, MongoDB, proxy y persistencia | Pendiente ejecución en Docker/VPS |
-| Aceptación | Flujos admin/viewer y criterios RNF seleccionados | Pendiente ejecución contra URL pública |
+| Aceptación | Flujos invitado/admin/viewer y criterios RNF seleccionados | Pendiente ejecución contra URL pública |
 | Funcionales automáticas | Dos recorridos Selenium en Chrome | Script implementado |
 | Carga | Login viewer, salud, últimas mediciones e historial | JMX implementado |
 
@@ -15,9 +15,11 @@
 
 | ID | Resultado esperado | Automatización |
 |---|---|---|
+| PA-00 | Un invitado visualiza dashboard, historial, relés en lectura y última foto sin iniciar sesión | Selenium/API |
 | PA-01 | Admin inicia sesión y visualiza nueve bolsas | Selenium |
 | PA-02 | Admin dispone de control de simulador y relés | Selenium |
 | PA-03 | Viewer inicia sesión y no puede modificar controles | Selenium |
+| PA-03A | Invitado no accede a galería completa, CSV ni operaciones modificadoras | Selenium/API |
 | PA-04 | Historial responde y presenta resultados o estado vacío válido | Selenium/API |
 | PA-05 | Reiniciar contenedores conserva datos | Procedimiento Docker |
 | PA-06 | La URL pública responde mediante HTTP/HTTPS según la etapa | Sistema |

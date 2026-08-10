@@ -33,8 +33,9 @@ La aplicación separa rutas HTTP, servicios de negocio, repositorios y persisten
 
 | Actor | Responsabilidad |
 |---|---|
+| Visitante | Consulta el dashboard, historial, estado de relés y última fotografía sin iniciar sesión |
 | Administrador | Consulta datos, opera relés simulados y controla el simulador |
-| Visualizador | Consulta dashboard, historial, fotografías y exportaciones sin modificar estado |
+| Visualizador | Añade acceso a la galería completa y exportaciones sin modificar estado |
 | Simulador IoT | Produce ciclos coherentes de 21 mediciones |
 | Operador de despliegue | Administra la VPS, secretos, copias de seguridad y recuperación |
 
@@ -43,11 +44,12 @@ La aplicación separa rutas HTTP, servicios de negocio, repositorios y persisten
 | ID | Caso de uso | Actor |
 |---|---|---|
 | UC-01 | Iniciar y cerrar sesión | Administrador, visualizador |
-| UC-02 | Consultar estado de API, MongoDB y simulador | Ambos roles |
-| UC-03 | Visualizar las últimas 21 mediciones | Ambos roles |
-| UC-04 | Consultar historial filtrado y paginado | Ambos roles |
-| UC-05 | Exportar historial CSV | Ambos roles |
-| UC-06 | Consultar última fotografía y galería | Ambos roles |
+| UC-02 | Consultar estado de API, MongoDB y simulador | Visitante, administrador, visualizador |
+| UC-03 | Visualizar las últimas 21 mediciones | Visitante, administrador, visualizador |
+| UC-04 | Consultar historial filtrado y paginado | Visitante, administrador, visualizador |
+| UC-05 | Exportar historial CSV | Administrador, visualizador |
+| UC-06 | Consultar la última fotografía | Visitante, administrador, visualizador |
+| UC-06A | Consultar la galería histórica completa | Administrador, visualizador |
 | UC-07 | Encender o apagar un relé simulado | Administrador |
 | UC-08 | Iniciar, detener o ejecutar el simulador | Administrador |
 | UC-09 | Auditar accesos, exportaciones y modificaciones | Sistema |
