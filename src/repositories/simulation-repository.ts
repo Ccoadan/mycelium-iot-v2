@@ -27,7 +27,7 @@ export class MongoSimulationRepository implements SimulationPersistence {
     return database
       .collection<Measurement>(COLLECTIONS.measurements)
       .aggregate<Measurement>([
-        { $sort: { timestamp: -1 } },
+        { $sort: { sensorId: 1, type: 1, timestamp: -1 } },
         {
           $group: {
             _id: { sensorId: '$sensorId', type: '$type' },

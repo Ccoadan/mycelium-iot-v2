@@ -8,4 +8,4 @@ Copie `jmeter.example.properties` como `jmeter.properties`, introduzca las crede
 npm run test:jmeter
 ```
 
-El comando utiliza modo CLI y genera `reports/jmeter/results.jtl` junto con el dashboard HTML. No ejecute carga intensa contra la VPS sin ajustar primero `threads` y `loops`; la prueba predeterminada está limitada para la VPS de 2 GB.
+El comando utiliza modo CLI y genera `reports/jmeter/results.jtl` junto con el dashboard HTML. No ejecute carga intensa contra la VPS sin ajustar primero `threads` y `loops`; comience con un usuario y aumente de forma gradual hasta la prueba académica de 10 usuarios en la VPS de 1 GB con 2 GB de swap.
