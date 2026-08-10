@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { createApp } from '../src/app.js';
 
@@ -38,5 +38,18 @@ describe('GET /api/health', () => {
     expect(response.status).toBe(503);
     expect(payload).toMatchObject({ status: 'degraded', services: { mongodb: { status: 'down' } } });
     expect(JSON.stringify(payload)).not.toContain('error');
+  });
+
+  it('combina comprobaciones concurrentes de MongoDB', async () => {
+    const checkHealth = vi.fn(async () => ({ available: true, latencyMs: 1 }));
+    const app = createApp({
+      appEnv: 'test',
+      database: { databaseName: 'test_database', checkHealth },
+    });
+
+    const responses = await Promise.all(Array.from({ length: 10 }, () => app.request('/api/health')));
+
+    expect(responses.every(({ status }) => status === 200)).toBe(true);
+    expect(checkHealth).toHaveBeenCalledTimes(1);
   });
 });

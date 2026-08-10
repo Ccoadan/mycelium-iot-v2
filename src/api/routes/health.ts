@@ -14,11 +14,35 @@ export interface HealthRouteDependencies {
   simulation?: { getStatus(): SimulationStatus };
 }
 
+export const HEALTH_DATABASE_CACHE_TTL_MS = 2_000;
+
 export function createHealthRoutes(dependencies: HealthRouteDependencies): Hono {
   const routes = new Hono();
+  let cachedDatabaseHealth: { expiresAt: number; value: DatabaseHealth } | undefined;
+  let databaseHealthRequest: Promise<DatabaseHealth> | undefined;
+
+  async function getDatabaseHealth(): Promise<DatabaseHealth> {
+    const now = Date.now();
+    if (cachedDatabaseHealth && cachedDatabaseHealth.expiresAt > now) {
+      return cachedDatabaseHealth.value;
+    }
+    if (databaseHealthRequest) {
+      return databaseHealthRequest;
+    }
+
+    const request = dependencies.database.checkHealth();
+    databaseHealthRequest = request;
+    try {
+      const value = await request;
+      cachedDatabaseHealth = { expiresAt: now + HEALTH_DATABASE_CACHE_TTL_MS, value };
+      return value;
+    } finally {
+      if (databaseHealthRequest === request) databaseHealthRequest = undefined;
+    }
+  }
 
   routes.get('/health', async (context) => {
-    const databaseHealth = await dependencies.database.checkHealth();
+    const databaseHealth = await getDatabaseHealth();
     const simulationStatus = dependencies.simulation?.getStatus();
     const response = {
       status: databaseHealth.available ? 'ok' : 'degraded',
